@@ -23,8 +23,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	common "github.com/scanoss/papi/api/commonv2"
 	pb "github.com/scanoss/papi/api/componentsv2"
-	zlog "scanoss.com/dependencies/pkg/logger"
-	"scanoss.com/dependencies/pkg/usecase"
+	zlog "scanoss.com/components/pkg/logger"
+	"scanoss.com/components/pkg/usecase"
 )
 
 type componentServer struct {
@@ -37,19 +37,19 @@ func NewComponentServer(db *sqlx.DB) pb.ComponentsServer {
 }
 
 // Echo sends back the same message received
-func (d dependencyServer) Echo(ctx context.Context, request *common.EchoRequest) (*common.EchoResponse, error) {
+func (d componentServer) Echo(ctx context.Context, request *common.EchoRequest) (*common.EchoResponse, error) {
 	zlog.S.Infof("Received (%v): %v", ctx, request.GetMessage())
 	return &common.EchoResponse{Message: request.GetMessage()}, nil
 }
 
-// GetDependencies searches for information about the supplied dependencies
-func (d dependencyServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
-	zlog.S.Infof("Processing dependency request: %v", request)
+// Search and retrieves a list of components
+func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
+	zlog.S.Infof("Processing component request: %v", request)
 
 	dtoRequest, err := convertSearchComponentInput(request) // Convert to internal DTO for processing
 	if err != nil {
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing dependency input data"}
-		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("problem parsing dependency input data")
+		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing component input data"}
+		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("problem parsing component input data")
 	}
 	conn, err := d.db.Connx(ctx) // Get a connection from the pool
 	if err != nil {
@@ -63,18 +63,27 @@ func (d dependencyServer) SearchComponents(ctx context.Context, request *pb.Comp
 	compUc := usecase.NewComponents(ctx, conn)
 	dtoComponents, err := compUc.GetComponents(dtoRequest)
 	if err != nil {
-		zlog.S.Errorf("Failed to get dependencies: %v", err)
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting dependency data"}
+		zlog.S.Errorf("Failed to get components: %v", err)
+		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
 		return &pb.CompSearchResponse{Status: &statusResp}, nil
 	}
-	zlog.S.Debugf("Parsed Dependencies: %+v", dtoComponents)
-	compResponse, err := convertSearchComponentOutput(dtoComponents) // Convert the internal data into a response object
+	zlog.S.Debugf("Parsed Components: %+v", dtoComponents)
+	componentsResponse, err := convertSearchComponentOutput(dtoComponents) // Convert the internal data into a response object
 	if err != nil {
-		zlog.S.Errorf("Failed to covnert parsed dependencies: %v", err)
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting dependency data"}
+		zlog.S.Errorf("Failed to convert parsed components: %v", err)
+		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
 		return &pb.CompSearchResponse{Status: &statusResp}, nil
 	}
 	// Set the status and respond with the data
 	statusResp := common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success"}
-	return &pb.CompSearchResponse{Components: compResponse, Status: &statusResp}, nil
+	return &pb.CompSearchResponse{Components: componentsResponse.Components, Status: &statusResp}, nil
+}
+
+// closeDbConnection closes the specified database connection
+func closeDbConnection(conn *sqlx.Conn) {
+	zlog.S.Debugf("Closing DB Connection: %v", conn)
+	err := conn.Close()
+	if err != nil {
+		zlog.S.Warnf("Warning: Problem closing database connection: %v", err)
+	}
 }

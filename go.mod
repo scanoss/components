@@ -1,4 +1,4 @@
-module scanoss.com/dependencies
+module scanoss.com/components
 
 go 1.17
 

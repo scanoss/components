@@ -1,5 +1,5 @@
-# SCANOSS Platform 2.0 Dependencies
-Welcome to the dependency server for SCANOSS Platform 2.0
+# SCANOSS Platform 2.0 Components
+Welcome to the component server for SCANOSS Platform 2.0
 
 **Warning** Work In Progress **Warning**
 
@@ -33,14 +33,14 @@ DB_DSN=
 
 ## Docker Environment
 
-The dependency server can be deployed as a Docker container.
+The component server can be deployed as a Docker container.
 
 Adjust configurations by updating an .env file in the root of this repository.
 
 
 ### How to build
 
-You can build your own image of the SCANOSS Dependency Server with the ```docker build``` command as follows.
+You can build your own image of the SCANOSS Component Server with the ```docker build``` command as follows.
 
 ```bash
 make ghcr_build
@@ -49,7 +49,7 @@ make ghcr_build
 
 ### How to run
 
-Run the SCANOSS Dependency Server Docker image by specifying the environmental file to be used with the ```--env-file``` argument. 
+Run the SCANOSS Component Server Docker image by specifying the environmental file to be used with the ```--env-file``` argument. 
 
 You may also need to expose the ```APP_PORT``` on a given ```interface:port``` with the ```-p``` argument.
 

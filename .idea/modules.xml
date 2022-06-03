@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/components.iml" filepath="$PROJECT_DIR$/.idea/components.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../dependencies/.idea/dependencies.iml" filepath="$PROJECT_DIR$/../dependencies/.idea/dependencies.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../papi/.idea/papi.iml" filepath="$PROJECT_DIR$/../papi/.idea/papi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../platform-dev-database/.idea/platform-dev-database.iml" filepath="$PROJECT_DIR$/../platform-dev-database/.idea/platform-dev-database.iml" />
     </modules>
   </component>
 </project>

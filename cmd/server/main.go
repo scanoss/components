@@ -14,18 +14,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Package main loads the gRPC Dependency Server Service
+// Package main loads the gRPC Component Server Service
 package main
 
 import (
 	"fmt"
 	"os"
-	"scanoss.com/dependencies/pkg/cmd"
+	"scanoss.com/components/pkg/cmd"
 )
 
-// main starts the gRPC Dependency Service
+// main starts the gRPC Component Service
 func main() {
-	// Launch the Dependency Server Service
+	// Launch the Component Server Service
 	if err := cmd.RunServer(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "ERROR: Server launch error: %v\n", err)
 		os.Exit(1)

@@ -19,9 +19,9 @@ package usecase
 import (
 	"context"
 	"github.com/jmoiron/sqlx"
-	"scanoss.com/dependencies/pkg/dtos"
-	zlog "scanoss.com/dependencies/pkg/logger"
-	"scanoss.com/dependencies/pkg/models"
+	"scanoss.com/components/pkg/dtos"
+	zlog "scanoss.com/components/pkg/logger"
+	"scanoss.com/components/pkg/models"
 )
 
 type ComponentUseCase struct {

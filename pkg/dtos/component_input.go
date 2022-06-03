@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	zlog "scanoss.com/dependencies/pkg/logger"
+	zlog "scanoss.com/components/pkg/logger"
 )
 
 type ComponentSearchInput struct {
 	Search    string `json:"search,omitempty"`
 	Vendor    string `json:"vendor,omitempty" `
 	Component string `json:"component,omitempty"`
-	Package   string `json:"purl,omitempty"`
+	Package   string `json:"package"`
 	Limit     string `json:"limit,omitempty"`
 	Offset    string `json:"offset,omitempty"`
 }

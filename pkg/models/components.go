@@ -21,8 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	zlog "scanoss.com/dependencies/pkg/logger"
-	"scanoss.com/dependencies/pkg/utils"
+	zlog "scanoss.com/components/pkg/logger"
+	"scanoss.com/components/pkg/utils"
 )
 
 var MAX_LIMIT = 50

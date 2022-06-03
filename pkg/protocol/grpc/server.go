@@ -14,31 +14,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Package grpc handles all the gRPC communication for the Dependency Service
+// Package grpc handles all the gRPC communication for the Component Service
 // It takes care of starting and stopping the listener, etc.
 package grpc
 
 import (
 	"context"
-	pb "github.com/scanoss/papi/api/dependenciesv2"
+	pb "github.com/scanoss/papi/api/componentsv2"
 	"google.golang.org/grpc"
 	"net"
 	"os"
 	"os/signal"
-	zlog "scanoss.com/dependencies/pkg/logger"
+	zlog "scanoss.com/components/pkg/logger"
 )
 
 // TODO Add proper service startup/shutdown here
 
 // RunServer runs gRPC service to publish
-func RunServer(ctx context.Context, v2API pb.DependenciesServer, port string) error {
+func RunServer(ctx context.Context, v2API pb.ComponentsServer, port string) error {
 	listen, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		return err
 	}
 	// register service
 	server := grpc.NewServer()
-	pb.RegisterDependenciesServer(server, v2API)
+	pb.RegisterComponentsServer(server, v2API)
 	// graceful shutdown
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)

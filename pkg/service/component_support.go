@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	pb "github.com/scanoss/papi/api/componentsv2"
-	"scanoss.com/dependencies/pkg/dtos"
-	zlog "scanoss.com/dependencies/pkg/logger"
+	"scanoss.com/components/pkg/dtos"
+	zlog "scanoss.com/components/pkg/logger"
 )
 
 func convertSearchComponentInput(request *pb.CompSearchRequest) (dtos.ComponentSearchInput, error) {
@@ -16,7 +16,7 @@ func convertSearchComponentInput(request *pb.CompSearchRequest) (dtos.ComponentS
 	}
 	dtoRequest, err := dtos.ParseComponentInput(data)
 	if err != nil {
-		zlog.S.Errorf("Problem parsing dependency request input: %v", err)
+		zlog.S.Errorf("Problem parsing component request input: %v", err)
 		return dtos.ComponentSearchInput{}, errors.New("problem parsing component input")
 	}
 	return dtoRequest, nil
@@ -29,11 +29,11 @@ func convertSearchComponentOutput(output dtos.ComponentsSearchResults) (*pb.Comp
 		return &pb.CompSearchResponse{}, errors.New("problem marshalling component output")
 	}
 	zlog.S.Debugf("Parsed data: %v", string(data))
-	var depResp pb.CompSearchResponse
-	err = json.Unmarshal(data, &depResp)
+	var compResp pb.CompSearchResponse
+	err = json.Unmarshal(data, &compResp)
 	if err != nil {
 		zlog.S.Errorf("Problem unmarshalling component request output: %v", err)
 		return &pb.CompSearchResponse{}, errors.New("problem unmarshalling component output")
 	}
-	return &depResp, nil
+	return &compResp, nil
 }

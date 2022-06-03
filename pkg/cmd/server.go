@@ -27,10 +27,10 @@ import (
 	_ "github.com/lib/pq"
 	"go.uber.org/zap/zapcore"
 	"os"
-	myconfig "scanoss.com/dependencies/pkg/config"
-	zlog "scanoss.com/dependencies/pkg/logger"
-	"scanoss.com/dependencies/pkg/protocol/grpc"
-	"scanoss.com/dependencies/pkg/service"
+	myconfig "scanoss.com/components/pkg/config"
+	zlog "scanoss.com/components/pkg/logger"
+	"scanoss.com/components/pkg/protocol/grpc"
+	"scanoss.com/components/pkg/service"
 	"strings"
 	"time"
 )
@@ -77,7 +77,7 @@ func closeDbConnection(db *sqlx.DB) {
 	}
 }
 
-// RunServer runs the gRPC Dependency Server
+// RunServer runs the gRPC Component Server
 func RunServer() error {
 	// Load command line options and config
 	cfg, err := getConfig()
@@ -103,7 +103,7 @@ func RunServer() error {
 		}
 	}
 	defer zlog.SyncZap()
-	zlog.S.Infof("Starting SCANOSS Dependency Service: %v", strings.TrimSpace(version))
+	zlog.S.Infof("Starting SCANOSS Component Service: %v", strings.TrimSpace(version))
 	// Setup database connection pool
 	var dsn string
 	if len(cfg.Database.Dsn) > 0 {
@@ -133,7 +133,7 @@ func RunServer() error {
 		return fmt.Errorf("failed to ping database: %v", err)
 	}
 	defer closeDbConnection(db)
-	v2API := service.NewDependencyServer(db)
+	v2API := service.NewComponentServer(db)
 	ctx := context.Background()
 	return grpc.RunServer(ctx, v2API, cfg.App.Port)
 }

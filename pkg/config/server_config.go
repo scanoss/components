@@ -63,7 +63,7 @@ func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
 
 // setServerConfigDefaults attempts to set reasonable defaults for the server config
 func setServerConfigDefaults(cfg *ServerConfig) {
-	cfg.App.Name = "SCANOSS Dependency Server"
+	cfg.App.Name = "SCANOSS Component Server"
 	cfg.App.Port = defaultGrpcPort
 	cfg.App.Mode = "dev"
 	cfg.App.Debug = false

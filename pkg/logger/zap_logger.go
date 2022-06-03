@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Package logger handles logging for everything in the dependency system
+// Package logger handles logging for everything in the component system
 // It uses zap to achieve this
 package logger
 

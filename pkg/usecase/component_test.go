@@ -50,7 +50,7 @@ func TestComponentUseCase(t *testing.T) {
 	}
 	var compRequestData = `{
 		"component": "angular",
-		"purl": "github"
+		"package": "github"
 	}
 	`
 	compUc := NewComponents(ctx, conn)

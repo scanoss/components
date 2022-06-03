@@ -22,14 +22,14 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	common "github.com/scanoss/papi/api/commonv2"
-	pb "github.com/scanoss/papi/api/dependenciesv2"
+	pb "github.com/scanoss/papi/api/componentsv2"
 	"reflect"
-	zlog "scanoss.com/dependencies/pkg/logger"
-	"scanoss.com/dependencies/pkg/models"
+	zlog "scanoss.com/components/pkg/logger"
+	"scanoss.com/components/pkg/models"
 	"testing"
 )
 
-func TestDependencyServer_Echo(t *testing.T) {
+func TestComponentServer_Echo(t *testing.T) {
 	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -41,7 +41,7 @@ func TestDependencyServer_Echo(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer models.CloseDB(db)
-	s := NewDependencyServer(db)
+	s := NewComponentServer(db)
 
 	type args struct {
 		ctx context.Context
@@ -49,7 +49,7 @@ func TestDependencyServer_Echo(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		s       pb.DependenciesServer
+		s       pb.ComponentsServer
 		args    args
 		want    *common.EchoResponse
 		wantErr bool
@@ -78,7 +78,7 @@ func TestDependencyServer_Echo(t *testing.T) {
 	}
 }
 
-func TestDependencyServer_GetDependencies_Success(t *testing.T) {
+func TestComponentServer_SearchComponents_Success(t *testing.T) {
 	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -94,88 +94,50 @@ func TestDependencyServer_GetDependencies_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	s := NewDependencyServer(db)
+	s := NewComponentServer(db)
 
-	var depRequestData = `{
-  "depth": 1,
-  "files": [
-    {
-      "file": "vue-dev/packages/weex-template-compiler/package.json",
-      "purls": [
-        {
-          "purl": "pkg:npm/electron-debug",
-          "requirement": "^3.1.0"
-        },
-        {
-          "purl": "pkg:npm/isbinaryfile",
-          "requirement": "^4.0.8"
-        },
-        {
-          "purl": "pkg:npm/sort-paths",
-          "requirement": "^1.1.1"
-        }
-      ]
-    }
-  ]
-}
-`
-	var depReq = pb.DependencyRequest{}
-	err = json.Unmarshal([]byte(depRequestData), &depReq)
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when unmarshalling requestd", err)
-	}
-	var depRequestDataBad = `{
-  "depth": 1,
-  "files": [
-  ]
-}
-`
-	var depReqBad = pb.DependencyRequest{}
-	err = json.Unmarshal([]byte(depRequestDataBad), &depReqBad)
+	var compRequestData = `{
+  		"component": "angular",
+		"package": "github"
+	}`
+
+	var compReq = pb.CompSearchRequest{}
+	err = json.Unmarshal([]byte(compRequestData), &compReq)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when unmarshalling requestd", err)
 	}
 
 	type args struct {
 		ctx context.Context
-		req *pb.DependencyRequest
+		req *pb.CompSearchRequest
 	}
 	tests := []struct {
 		name    string
-		s       pb.DependenciesServer
+		s       pb.ComponentsServer
 		args    args
-		want    *pb.DependencyResponse
+		want    *pb.CompSearchResponse
 		wantErr bool
 	}{
 		{
-			name: "Get Deps Simple True",
+			name: "Search for angular and purltype github without limit",
 			s:    s,
 			args: args{
 				ctx: ctx,
-				req: &depReq,
+				req: &compReq,
 			},
-			want: &pb.DependencyResponse{Status: &common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success"}},
-		},
-		{
-			name: "Get Deps Simple False",
-			s:    s,
-			args: args{
-				ctx: ctx,
-				req: &depReqBad,
-			},
-			want:    &pb.DependencyResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Failed"}},
-			wantErr: true,
+			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success"}},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.s.GetDependencies(tt.args.ctx, tt.args.req)
+			got, err := tt.s.SearchComponents(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("service.GetDependencies() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("service.SearchComponents() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if err == nil && !reflect.DeepEqual(got.Status, tt.want.Status) {
-				t.Errorf("service.GetDependencies() = %v, want %v", got, tt.want)
+				t.Errorf("service.SearchComponents() = %v, want %v", got, tt.want)
 			}
 		})
 	}
