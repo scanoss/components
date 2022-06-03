@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	defaultGrpcPort = "50051"
+	defaultGrpcPort = "50053"
 )
 
 // ServerConfig is configuration for Server

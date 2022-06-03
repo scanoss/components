@@ -63,6 +63,10 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		limit = MAX_LIMIT
 	}
 
+	if (offset < 0) {
+		offset = 0
+	}
+
 	if len(purlType) == 0 {
 		return m.GetComponentsByName(compName, limit, offset)
 	}

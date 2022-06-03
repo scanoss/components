@@ -12,8 +12,8 @@ type ComponentSearchInput struct {
 	Vendor    string `json:"vendor,omitempty" `
 	Component string `json:"component,omitempty"`
 	Package   string `json:"package"`
-	Limit     string `json:"limit,omitempty"`
-	Offset    string `json:"offset,omitempty"`
+	Limit     int    `json:"limit,omitempty"`
+	Offset    int    `json:"offset,omitempty"`
 }
 
 func ParseComponentInput(input []byte) (ComponentSearchInput, error) {

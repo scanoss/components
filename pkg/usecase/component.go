@@ -38,7 +38,7 @@ func NewComponents(ctx context.Context, conn *sqlx.Conn) *ComponentUseCase {
 
 func (c ComponentUseCase) GetComponents(request dtos.ComponentSearchInput) (dtos.ComponentsSearchResults, error) {
 
-	searchResults, err := c.components.GetComponentsByNameType(request.Component, request.Package, -1, -1)
+	searchResults, err := c.components.GetComponentsByNameType(request.Component, request.Package, request.Limit, request.Offset)
 	if err != nil {
 		zlog.S.Errorf("Problem encountered searching for components: %v - %v.", request.Component, request.Package)
 	}
