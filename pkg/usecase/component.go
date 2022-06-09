@@ -22,25 +22,37 @@ import (
 	"scanoss.com/components/pkg/dtos"
 	zlog "scanoss.com/components/pkg/logger"
 	"scanoss.com/components/pkg/models"
+	"scanoss.com/components/pkg/utils"
 )
 
 type ComponentUseCase struct {
 	ctx        context.Context
-	conn       *sqlx.Conn
+	db         *sqlx.DB
 	components *models.ComponentModel
 }
 
-func NewComponents(ctx context.Context, conn *sqlx.Conn) *ComponentUseCase {
-	return &ComponentUseCase{ctx: ctx, conn: conn,
-		components: models.NewComponentModel(ctx, conn),
+func NewComponents(ctx context.Context, db *sqlx.DB) *ComponentUseCase {
+	return &ComponentUseCase{ctx: ctx, db: db,
+		components: models.NewComponentModel(ctx, db),
 	}
 }
 
 func (c ComponentUseCase) GetComponents(request dtos.ComponentSearchInput) (dtos.ComponentsSearchResults, error) {
+	var err error
+	var searchResults []models.Component
 
-	searchResults, err := c.components.GetComponentsByNameType(request.Component, request.Package, request.Limit, request.Offset)
+	if len(request.Search) != 0 {
+		searchResults, err = c.components.GetComponents(request.Search, request.Package, request.Limit, request.Offset)
+	} else {
+		searchResults, err = c.components.GetComponentsByNameType(request.Component, request.Package, request.Limit, request.Offset)
+	}
+
 	if err != nil {
 		zlog.S.Errorf("Problem encountered searching for components: %v - %v.", request.Component, request.Package)
+	}
+
+	for i, _ := range searchResults {
+		searchResults[i].Url, _ = utils.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
 	}
 
 	var componentsSearchResults []dtos.ComponentSearchResult

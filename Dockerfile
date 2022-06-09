@@ -20,5 +20,5 @@ COPY --from=build /app/scanoss-components /app/scanoss-components
 
 EXPOSE 50053
 
-ENTRYPOINT ["./scanoss-dependencies"]
+ENTRYPOINT ["./scanoss-components"]
 #CMD ["--help"]

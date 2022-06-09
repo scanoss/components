@@ -82,6 +82,12 @@ func CloseConn(conn *sqlx.Conn) {
 	}
 }
 
+func CloseConnections(conn []*sqlx.Conn) {
+	for _, v := range conn {
+		CloseConn(v)
+	}
+}
+
 func CloseRows(rows *sqlx.Rows) {
 	if rows != nil {
 		zlog.S.Debugf("Closing Rows...")

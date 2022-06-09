@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	"scanoss.com/dependencies/pkg/dtos"
-	zlog "scanoss.com/dependencies/pkg/logger"
-	"scanoss.com/dependencies/pkg/models"
+	"scanoss.com/components/pkg/dtos"
+	zlog "scanoss.com/components/pkg/logger"
+	"scanoss.com/components/pkg/models"
 	"testing"
 )
 
@@ -43,24 +43,25 @@ func TestComponentUseCase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
-	defer models.CloseConn(conn)
 	err = models.LoadTestSqlData(db, ctx, conn)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
+	models.CloseConn(conn)
+
 	var compRequestData = `{
 		"component": "angular",
 		"package": "github"
 	}
 	`
-	compUc := NewComponents(ctx, conn)
+	compUc := NewComponents(ctx, db)
 	requestDto, err := dtos.ParseComponentInput([]byte(compRequestData))
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when parsing input json", err)
 	}
 	components, err := compUc.GetComponents(requestDto)
 	if err != nil {
-		t.Fatalf("an error '%s' was not expected when getting dependencies", err)
+		t.Fatalf("an error '%s' was not expected when getting components", err)
 	}
 	fmt.Printf("Components response: %+v\n", components)
 

@@ -51,16 +51,9 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing component input data"}
 		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("problem parsing component input data")
 	}
-	conn, err := d.db.Connx(ctx) // Get a connection from the pool
-	if err != nil {
-		zlog.S.Errorf("Failed to get a database connection from the pool: %v", err)
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Failed to get database pool connection"}
-		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("problem getting database pool connection")
-	}
-	defer closeDbConnection(conn)
 
 	// Search the KB for information about the components
-	compUc := usecase.NewComponents(ctx, conn)
+	compUc := usecase.NewComponents(ctx, d.db)
 	dtoComponents, err := compUc.GetComponents(dtoRequest)
 	if err != nil {
 		zlog.S.Errorf("Failed to get components: %v", err)

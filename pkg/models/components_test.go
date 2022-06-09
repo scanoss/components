@@ -41,13 +41,13 @@ func TestComponentsSearch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
-	defer CloseConn(conn)
 	err = loadTestSqlDataFiles(db, ctx, conn, []string{"../models/tests/projects.sql", "../models/tests/mines.sql"})
 	if err != nil {
 		t.Fatalf("failed to load SQL test data: %v", err)
 	}
+	CloseConn(conn)
 
-	component := NewComponentModel(ctx, conn)
+	component := NewComponentModel(ctx, db)
 	var purlType = "npm"
 	var compName = "uuid"
 	fmt.Printf("Searching for components: Component Name:%v, PurlType: %v\n", compName, purlType)
@@ -63,17 +63,56 @@ func TestComponentsSearch(t *testing.T) {
 	purlType = "github"
 	compName = "angular"
 	fmt.Printf("Searching for components: Component Name:%v, PurlType: %v\n", compName, purlType)
-	components, err = component.GetComponentsByNameType(compName, purlType, 20, -1)
+	components, err = component.GetComponentsByNameType(compName, purlType, 20, 0)
 	if err != nil {
 		t.Errorf("components.GetComponentsByNameType() error = %v", err)
 	}
-	if len(components) < 1 {
-		t.Errorf("components.GetComponentsByNameType() No components returned from query")
+	fmt.Printf("Components: %v\n", components)
+
+	purlType = "github"
+	compName = "angular"
+	fmt.Printf("Searching for components: Component Name:%v, PurlType: %v\n", compName, purlType)
+	components, err = component.GetComponents(compName, purlType, 4, 0)
+	if err != nil {
+		t.Errorf("components.GetComponentsByNameType() error = %v", err)
 	}
-	if len(components) > 20 {
-		t.Errorf("components.GetComponentsByNameType() Limit of components retrieved exedeed the maximum")
+	fmt.Printf("Components: %v\n", components)
+}
+
+func TestRemoveDuplicates(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 
-	fmt.Printf("Components: %v\n", components)
+	var components = []Component{
+		{
+			Component: "comp1",
+			PurlType:  "purlType",
+			PurlName:  "purlName",
+			Url:       "url",
+		},
+		{
+			Component: "angular",
+			PurlType:  "github",
+			PurlName:  "angular",
+			Url:       "url",
+		},
+		{
+			Component: "comp1",
+			PurlType:  "purlType",
+			PurlName:  "purlName",
+			Url:       "url",
+		},
+	}
+
+	var uniqueComponents []Component
+	uniqueComponents = removeDuplicateComponents(components)
+
+	if len(uniqueComponents) != 2 {
+		t.Fatalf("Expected only 2 elements")
+	}
+
+	fmt.Printf("%v+", uniqueComponents)
 
 }

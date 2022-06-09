@@ -6,7 +6,7 @@
   },
   "Database": {
     "Driver": "postgres",
-    "Host":   "host.docker.internal",
+    "Host":   "localhost",
     "User":   "scanoss",
     "Passwd": "secret123!",
     "Schema": "scanoss"

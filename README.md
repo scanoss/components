@@ -16,7 +16,7 @@ dot-env --> env.json -->  Actual Environment Variable
 These are the supported configuration arguments:
 
 ```
-APP_NAME="SCANOSS Dependency Server"
+APP_NAME="SCANOSS Component Server"
 APP_PORT=50051
 APP_MODE=dev
 APP_DEBUG=false
@@ -54,7 +54,7 @@ Run the SCANOSS Component Server Docker image by specifying the environmental fi
 You may also need to expose the ```APP_PORT``` on a given ```interface:port``` with the ```-p``` argument.
 
 ```bash
-docker run -it -v "$(pwd)":"$(pwd)" -p 50051:50051 ghcr.io/scanoss/scanoss-dependencies -json-config $(pwd)/config/app-config-docker-local-dev.json -debug
+docker run -it -v "$(pwd)":"$(pwd)" -p 50051:50051 ghcr.io/scanoss/scanoss-components -json-config $(pwd)/config/app-config-docker-local-dev.json -debug
 ```
 
 ## Development

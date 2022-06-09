@@ -9,12 +9,12 @@ require (
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/package-url/packageurl-go v0.1.0
-	github.com/scanoss/papi v0.0.3-unpublish
+	github.com/scanoss/papi v0.0.4
 	go.uber.org/zap v1.20.0
 	google.golang.org/grpc v1.43.0
 )
 
-replace github.com/scanoss/papi => ../papi
+//replace github.com/scanoss/papi => ../papi
 
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
