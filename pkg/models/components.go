@@ -24,7 +24,6 @@ import (
 	zlog "scanoss.com/components/pkg/logger"
 )
 
-var DEFAULT_MAX_LIMIT = 50
 var DEFAULT_PURL_TYPE = "github"
 
 type ComponentModel struct {
@@ -62,8 +61,8 @@ func (m *ComponentModel) GetComponents(searchCriteria, purlType string, limit, o
 		return nil, errors.New("please specify a valid component Name to query")
 	}
 
-	if limit > DEFAULT_MAX_LIMIT || limit <= 0 {
-		limit = DEFAULT_MAX_LIMIT
+	if limit > DEFAULT_MAX_COMPONENT_LIMIT || limit <= 0 {
+		limit = DEFAULT_MAX_COMPONENT_LIMIT
 	}
 
 	if offset < 0 {
@@ -112,8 +111,8 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		return allComponents, errors.New("please specify a valid component Name to query")
 	}
 
-	if limit > DEFAULT_MAX_LIMIT || limit <= 0 {
-		limit = DEFAULT_MAX_LIMIT
+	if limit > DEFAULT_MAX_COMPONENT_LIMIT || limit <= 0 {
+		limit = DEFAULT_MAX_COMPONENT_LIMIT
 	}
 
 	if offset < 0 {
@@ -133,11 +132,11 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 	}
 
 	err = con.SelectContext(m.ctx, &allComponents,
-		"SELECT component, purl_name, m.purl_type FROM projects p"+
+		"SELECT component, purl_name, m.purl_type FROM projects p "+
 			" LEFT JOIN mines m ON p.mine_id = m.id"+
 			" WHERE p.component LIKE $1"+
 			" AND m.purl_type = $2"+
-			" LIMIT $3 OFFSET $4;",
+			" LIMIT $3 OFFSET $4",
 		compName, purlType, limit, offset)
 
 	if err != nil {

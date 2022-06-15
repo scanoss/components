@@ -21,13 +21,14 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	"scanoss.com/components/pkg/dtos"
+	"scanoss.com/components/pkg/dtos/dtoGetComponentVersion"
+	"scanoss.com/components/pkg/dtos/dtoSearchComponent"
 	zlog "scanoss.com/components/pkg/logger"
 	"scanoss.com/components/pkg/models"
 	"testing"
 )
 
-func TestComponentUseCase(t *testing.T) {
+func TestSearchComponentsUseCase(t *testing.T) {
 	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -55,14 +56,52 @@ func TestComponentUseCase(t *testing.T) {
 	}
 	`
 	compUc := NewComponents(ctx, db)
-	requestDto, err := dtos.ParseComponentInput([]byte(compRequestData))
+	requestDto, err := dtoSearchComponent.ParseComponentInput([]byte(compRequestData))
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when parsing input json", err)
 	}
-	components, err := compUc.GetComponents(requestDto)
+	components, err := compUc.SearchComponents(requestDto)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when getting components", err)
 	}
 	fmt.Printf("Components response: %+v\n", components)
+}
+
+func TestGetComponentVersionsUseCase(t *testing.T) {
+	ctx := context.Background()
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	db, err := sqlx.Connect("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer models.CloseDB(db)
+	conn, err := db.Connx(ctx) // Get a connection from the pool
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	err = models.LoadTestSqlData(db, ctx, conn)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when loading test data", err)
+	}
+	models.CloseConn(conn)
+
+	var compVersionRequestData = `{
+		"purl": "pkg:gem/tablestyle"
+	}
+	`
+	compUc := NewComponents(ctx, db)
+	requestDto, err := dtoGetComponentVersion.ParseComponentVersionsInput([]byte(compVersionRequestData))
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when parsing input json", err)
+	}
+	versions, err := compUc.GetComponentVersions(requestDto)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when getting components", err)
+	}
+	fmt.Printf("Versions response: %+v\n", versions)
 
 }

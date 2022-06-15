@@ -41,7 +41,8 @@ func TestComponentsSearch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
-	err = loadTestSqlDataFiles(db, ctx, conn, []string{"../models/tests/projects.sql", "../models/tests/mines.sql"})
+
+	err = LoadTestSqlData(db, ctx, conn)
 	if err != nil {
 		t.Fatalf("failed to load SQL test data: %v", err)
 	}
@@ -49,7 +50,7 @@ func TestComponentsSearch(t *testing.T) {
 
 	component := NewComponentModel(ctx, db)
 	var purlType = "npm"
-	var compName = "uuid"
+	var compName = "react"
 	fmt.Printf("Searching for components: Component Name:%v, PurlType: %v\n", compName, purlType)
 	components, err := component.GetComponentsByNameType(compName, purlType, -1, -1)
 	if err != nil {

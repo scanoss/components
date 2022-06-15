@@ -26,6 +26,10 @@ import (
 	zlog "scanoss.com/components/pkg/logger"
 )
 
+var DEFAULT_MAX_VERSION_LIMIT = 50
+
+var DEFAULT_MAX_COMPONENT_LIMIT = 50
+
 // loadSqlData Load the specified SQL files into the supplied DB
 func loadSqlData(db *sqlx.DB, ctx context.Context, conn *sqlx.Conn, filename string) error {
 	fmt.Printf("Loading test data file: %v\n", filename)

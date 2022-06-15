@@ -18,8 +18,10 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"github.com/jmoiron/sqlx"
-	"scanoss.com/components/pkg/dtos"
+	"scanoss.com/components/pkg/dtos/dtoGetComponentVersion"
+	"scanoss.com/components/pkg/dtos/dtoSearchComponent"
 	zlog "scanoss.com/components/pkg/logger"
 	"scanoss.com/components/pkg/models"
 	"scanoss.com/components/pkg/utils"
@@ -29,15 +31,17 @@ type ComponentUseCase struct {
 	ctx        context.Context
 	db         *sqlx.DB
 	components *models.ComponentModel
+	allUrl     *models.AllUrlsModel
 }
 
 func NewComponents(ctx context.Context, db *sqlx.DB) *ComponentUseCase {
 	return &ComponentUseCase{ctx: ctx, db: db,
 		components: models.NewComponentModel(ctx, db),
+		allUrl:     models.NewAllUrlModel(ctx, db),
 	}
 }
 
-func (c ComponentUseCase) GetComponents(request dtos.ComponentSearchInput) (dtos.ComponentsSearchResults, error) {
+func (c ComponentUseCase) SearchComponents(request dtoSearchComponent.ComponentSearchInput) (dtoSearchComponent.ComponentsSearchOutput, error) {
 	var err error
 	var searchResults []models.Component
 
@@ -55,10 +59,10 @@ func (c ComponentUseCase) GetComponents(request dtos.ComponentSearchInput) (dtos
 		searchResults[i].Url, _ = utils.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
 	}
 
-	var componentsSearchResults []dtos.ComponentSearchResult
+	var componentsSearchResults []dtoSearchComponent.ComponentSearchOutput
 
 	for _, component := range searchResults {
-		var componentSearchResult dtos.ComponentSearchResult
+		var componentSearchResult dtoSearchComponent.ComponentSearchOutput
 		componentSearchResult.Component = component.Component
 		componentSearchResult.Purl = "pkg:" + component.PurlType + "/" + component.PurlName
 		componentSearchResult.Url = component.Url
@@ -66,5 +70,57 @@ func (c ComponentUseCase) GetComponents(request dtos.ComponentSearchInput) (dtos
 		componentsSearchResults = append(componentsSearchResults, componentSearchResult)
 	}
 
-	return dtos.ComponentsSearchResults{Components: componentsSearchResults}, nil
+	return dtoSearchComponent.ComponentsSearchOutput{Components: componentsSearchResults}, nil
+}
+
+func (c ComponentUseCase) GetComponentVersions(request dtoGetComponentVersion.ComponentVersionsInput) (dtoGetComponentVersion.ComponentVersionsOutput, error) {
+
+	if len(request.Purl) == 0 {
+		zlog.S.Errorf("The request does not contains purl to retrieve component versions")
+		return dtoGetComponentVersion.ComponentVersionsOutput{}, errors.New("The request does not contains purl to retrieve component versions")
+	}
+
+	allUrls, err := c.allUrl.GetUrlsByPurlString(request.Purl, request.Limit)
+	if err != nil {
+		zlog.S.Errorf("Problem encountered gettings URLs versions for: %v - %v.", request.Purl, err)
+		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
+	}
+
+	_, err = utils.PurlFromString(request.Purl)
+	if err != nil {
+		zlog.S.Errorf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
+		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
+	}
+
+	//for i, v := range allUrls {
+	//	allUrls[i].Url, err = utils.ProjectUrl(purl.Name, purl.Type)
+	//	if err != nil {
+	//		break;
+	//	}
+	//}
+
+	if err != nil {
+		zlog.S.Errorf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
+		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
+	}
+
+	var output dtoGetComponentVersion.ComponentOutput
+
+	output.Purl = request.Purl
+	output.Component = allUrls[0].Component
+	output.Url = "url"
+
+	for _, u := range allUrls {
+		var version dtoGetComponentVersion.ComponentVersion
+		version.Version = u.Version
+
+		var license dtoGetComponentVersion.ComponentLicense
+		license.Name = u.License
+		license.SpdxId = u.LicenseId
+		license.IsSpdx = u.IsSpdx
+		version.Licenses = append(version.Licenses, license)
+
+		output.Versions = append(output.Versions, version)
+	}
+	return dtoGetComponentVersion.ComponentVersionsOutput{Component: output}, nil
 }

@@ -43,6 +43,7 @@ func (d componentServer) Echo(ctx context.Context, request *common.EchoRequest) 
 }
 
 // Search and retrieves a list of components
+//TODO: Close db connection after exit this method!
 func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
 	zlog.S.Infof("Processing component request: %v", request)
 
@@ -54,7 +55,7 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 
 	// Search the KB for information about the components
 	compUc := usecase.NewComponents(ctx, d.db)
-	dtoComponents, err := compUc.GetComponents(dtoRequest)
+	dtoComponents, err := compUc.SearchComponents(dtoRequest)
 	if err != nil {
 		zlog.S.Errorf("Failed to get components: %v", err)
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
@@ -72,11 +73,36 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 	return &pb.CompSearchResponse{Components: componentsResponse.Components, Status: &statusResp}, nil
 }
 
-// closeDbConnection closes the specified database connection
-func closeDbConnection(conn *sqlx.Conn) {
-	zlog.S.Debugf("Closing DB Connection: %v", conn)
-	err := conn.Close()
-	if err != nil {
-		zlog.S.Warnf("Warning: Problem closing database connection: %v", err)
+func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.CompVersionRequest) (*pb.CompVersionResponse, error) {
+	//Verify the input request
+	if len(request.Purl) == 0 {
+		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "There is no purl to retrieve component"}
+		return &pb.CompVersionResponse{Status: &statusResp}, errors.New("There is no purl to retrieve component")
 	}
+
+	//Convert the request to internal DTO
+	dtoRequest, err := convertCompVersionsInput(request)
+	if err != nil {
+		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing component version input data"}
+		return &pb.CompVersionResponse{Status: &statusResp}, errors.New("problem parsing component version input data")
+	}
+
+	// Creates the use case
+	compUc := usecase.NewComponents(ctx, d.db)
+	dtoOutput, err := compUc.GetComponentVersions(dtoRequest)
+
+	if err != nil {
+		zlog.S.Errorf("Failed to get components: %v", err)
+		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
+		return &pb.CompVersionResponse{Status: &statusResp}, nil
+	}
+
+	reqResponse, err := convertCompVersionsOutput(dtoOutput)
+	if err != nil {
+		zlog.S.Errorf("Failed to convert parsed components: %v", err)
+		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
+		return &pb.CompVersionResponse{Status: &statusResp}, nil
+	}
+	statusResp := common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success"}
+	return &pb.CompVersionResponse{Component: reqResponse.Component, Status: &statusResp}, nil
 }
