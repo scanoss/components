@@ -55,7 +55,7 @@ func (c ComponentUseCase) SearchComponents(request dtoSearchComponent.ComponentS
 		zlog.S.Errorf("Problem encountered searching for components: %v - %v.", request.Component, request.Package)
 	}
 
-	for i, _ := range searchResults {
+	for i := range searchResults {
 		searchResults[i].Url, _ = utils.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
 	}
 
@@ -86,41 +86,33 @@ func (c ComponentUseCase) GetComponentVersions(request dtoGetComponentVersion.Co
 		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
 	}
 
-	_, err = utils.PurlFromString(request.Purl)
+	purl, err := utils.PurlFromString(request.Purl)
 	if err != nil {
 		zlog.S.Errorf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
 		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
 	}
 
-	//for i, v := range allUrls {
-	//	allUrls[i].Url, err = utils.ProjectUrl(purl.Name, purl.Type)
-	//	if err != nil {
-	//		break;
-	//	}
-	//}
-
+	projectURL, err := utils.ProjectUrl(request.Purl, purl.Type)
 	if err != nil {
-		zlog.S.Errorf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
+		zlog.S.Errorf("Problem generating the project: %v - %v.", request.Purl, err)
 		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
 	}
 
 	var output dtoGetComponentVersion.ComponentOutput
-
 	output.Purl = request.Purl
-	output.Component = allUrls[0].Component
-	output.Url = "url"
-
-	for _, u := range allUrls {
-		var version dtoGetComponentVersion.ComponentVersion
-		version.Version = u.Version
-
-		var license dtoGetComponentVersion.ComponentLicense
-		license.Name = u.License
-		license.SpdxId = u.LicenseId
-		license.IsSpdx = u.IsSpdx
-		version.Licenses = append(version.Licenses, license)
-
-		output.Versions = append(output.Versions, version)
+	if len(allUrls) > 0 {
+		output.Url = projectURL
+		output.Component = allUrls[0].Component
+		for _, u := range allUrls {
+			var version dtoGetComponentVersion.ComponentVersion
+			version.Version = u.Version
+			var license dtoGetComponentVersion.ComponentLicense
+			license.Name = u.License
+			license.SpdxId = u.LicenseId
+			license.IsSpdx = u.IsSpdx
+			version.Licenses = append(version.Licenses, license)
+			output.Versions = append(output.Versions, version)
+		}
 	}
 	return dtoGetComponentVersion.ComponentVersionsOutput{Component: output}, nil
 }

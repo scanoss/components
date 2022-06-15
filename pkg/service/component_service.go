@@ -43,7 +43,6 @@ func (d componentServer) Echo(ctx context.Context, request *common.EchoRequest) 
 }
 
 // Search and retrieves a list of components
-//TODO: Close db connection after exit this method!
 func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
 	zlog.S.Infof("Processing component request: %v", request)
 

@@ -76,17 +76,18 @@ func (m *ComponentModel) GetComponents(searchCriteria, purlType string, limit, o
 	numOfParallelQueries := len(fnGetComponents)
 	var channels []chan []Component
 	var connections []*sqlx.Conn
+	var con *sqlx.Conn
+	con, err = m.db.Connx(m.ctx)
 	for i := 0; i < numOfParallelQueries; i++ {
 		channels = append(channels, make(chan []Component))
 		if err != nil {
 			break
 		}
-		var con *sqlx.Conn
-		con, err = m.db.Connx(m.ctx)
+
 		connections = append(connections, con)
 	}
-	defer CloseConnections(connections)
-
+	//defer CloseConnections(connections)
+	defer CloseConn(con)
 	if err != nil {
 		return allComponents, err
 	}
