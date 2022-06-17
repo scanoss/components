@@ -36,6 +36,7 @@ func TestComponentsSearch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+	db.SetMaxOpenConns(1)
 	defer CloseDB(db)
 	conn, err := db.Connx(ctx) // Get a connection from the pool (with context)
 	if err != nil {
@@ -72,8 +73,8 @@ func TestComponentsSearch(t *testing.T) {
 
 	purlType = "github"
 	compName = "angular"
-	fmt.Printf("Searching for components: Component Name:%v, PurlType: %v\n", compName, purlType)
-	components, err = component.GetComponents(compName, purlType, 4, 0)
+	fmt.Printf("Searching for components by differents criteria: Component Name:%v, PurlType: %v\n", compName, purlType)
+	components, err = component.GetComponents(compName, purlType, 20, 0)
 	if err != nil {
 		t.Errorf("components.GetComponentsByNameType() error = %v", err)
 	}

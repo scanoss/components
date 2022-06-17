@@ -44,7 +44,7 @@ func NewComponentModel(ctx context.Context, db *sqlx.DB) *ComponentModel {
 
 func (m *ComponentModel) GetComponents(searchCriteria, purlType string, limit, offset int) ([]Component, error) {
 
-	fnGetComponents := make([]func(*sqlx.Conn, context.Context, chan []Component, string, string, int, int), 0)
+	fnGetComponents := make([]func(*sqlx.DB, context.Context, chan []Component, string, string, int, int), 0)
 
 	fnGetComponents = append(fnGetComponents, getComponentsQ0)
 	fnGetComponents = append(fnGetComponents, getComponentsQ1)
@@ -54,7 +54,6 @@ func (m *ComponentModel) GetComponents(searchCriteria, purlType string, limit, o
 	fnGetComponents = append(fnGetComponents, getComponentsQ5)
 
 	var allComponents []Component
-	var err error
 
 	if len(searchCriteria) == 0 {
 		zlog.S.Error("Please specify a valid Component Name to query")
@@ -73,33 +72,19 @@ func (m *ComponentModel) GetComponents(searchCriteria, purlType string, limit, o
 		purlType = DEFAULT_PURL_TYPE
 	}
 
-	numOfParallelQueries := len(fnGetComponents)
-	var channels []chan []Component
-	var connections []*sqlx.Conn
-	var con *sqlx.Conn
-	con, err = m.db.Connx(m.ctx)
-	for i := 0; i < numOfParallelQueries; i++ {
-		channels = append(channels, make(chan []Component))
-		if err != nil {
-			break
-		}
-
-		connections = append(connections, con)
-	}
-	//defer CloseConnections(connections)
-	defer CloseConn(con)
-	if err != nil {
-		return allComponents, err
-	}
-
 	limitPerQuery := limit / len(fnGetComponents)
 	if limitPerQuery <= 0 {
 		limitPerQuery = 1
 	}
+
+	var channels []chan []Component
+
 	for i, fn := range fnGetComponents {
-		go fn(connections[i], m.ctx, channels[i], searchCriteria, purlType, limitPerQuery, offset)
+		channels = append(channels, make(chan []Component))
+		go fn(m.db, m.ctx, channels[i], searchCriteria, purlType, limitPerQuery, offset)
 		allComponents = append(allComponents, <-channels[i]...)
 	}
+
 	allComponents = removeDuplicateComponents(allComponents)
 	return allComponents, nil
 }
@@ -148,10 +133,10 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 	return allComponents, nil
 }
 
-func getComponentsQ0(con *sqlx.Conn, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
+func getComponentsQ0(db *sqlx.DB, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
 	var allComponents []Component
 
-	err := con.SelectContext(ctx, &allComponents,
+	err := db.SelectContext(ctx, &allComponents,
 		"SELECT p.component, p.purl_name, m.purl_type from projects p"+
 			" LEFT JOIN mines m ON p.mine_id = m.id"+
 			" WHERE p.component = $1"+
@@ -162,7 +147,7 @@ func getComponentsQ0(con *sqlx.Conn, ctx context.Context, c chan []Component, se
 
 	if err != nil {
 		zlog.S.Errorf("Error: Failed to query projects table for %v, %v: %v", searchCriteria, purlType, err)
-		//return nil, fmt.Errorf("failed to query the projects table: %v", err)
+		fmt.Printf("failed to run query0 the projects table: %v\n", err)
 		return
 	}
 
@@ -170,10 +155,10 @@ func getComponentsQ0(con *sqlx.Conn, ctx context.Context, c chan []Component, se
 	return
 }
 
-func getComponentsQ1(con *sqlx.Conn, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
+func getComponentsQ1(db *sqlx.DB, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
 	var allComponents []Component
 
-	err := con.SelectContext(ctx, &allComponents,
+	err := db.SelectContext(ctx, &allComponents,
 		"SELECT p.component, p.purl_name, m.purl_type FROM projects p"+
 			" LEFT JOIN mines m ON p.mine_id = m.id"+
 			" WHERE p.vendor = $1"+
@@ -184,17 +169,17 @@ func getComponentsQ1(con *sqlx.Conn, ctx context.Context, c chan []Component, se
 
 	if err != nil {
 		zlog.S.Errorf("Error: Failed to query projects table for %v, %v: %v", searchCriteria, purlType, err)
-		//return nil, fmt.Errorf("failed to query the projects table: %v", err)
+		fmt.Printf("failed to run query1 the projects table: %v\n", err)
 		return
 	}
 	c <- allComponents
 	return
 }
 
-func getComponentsQ2(con *sqlx.Conn, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
+func getComponentsQ2(db *sqlx.DB, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
 	var allComponents []Component
 
-	err := con.SelectContext(ctx, &allComponents,
+	err := db.SelectContext(ctx, &allComponents,
 		"SELECT p.component, p.purl_name, m.purl_type from projects p"+
 			" LEFT JOIN mines m ON p.mine_id = m.id"+
 			" WHERE p.purl_name like $1"+
@@ -205,17 +190,17 @@ func getComponentsQ2(con *sqlx.Conn, ctx context.Context, c chan []Component, se
 
 	if err != nil {
 		zlog.S.Errorf("Error: Failed to query projects table for %v, %v: %v", searchCriteria, purlType, err)
-		//return nil, fmt.Errorf("failed to query the projects table: %v", err)
+		fmt.Printf("failed to run query2 the projects table: %v\n", err)
 		return
 	}
 	c <- allComponents
 	return
 }
 
-func getComponentsQ3(con *sqlx.Conn, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
+func getComponentsQ3(db *sqlx.DB, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
 	var allComponents []Component
 
-	err := con.SelectContext(ctx, &allComponents,
+	err := db.SelectContext(ctx, &allComponents,
 		"SELECT p.component, p.purl_name, m.purl_type from projects p"+
 			" LEFT JOIN mines m ON p.mine_id = m.id"+
 			" WHERE p.purl_name like $1"+
@@ -227,17 +212,17 @@ func getComponentsQ3(con *sqlx.Conn, ctx context.Context, c chan []Component, se
 
 	if err != nil {
 		zlog.S.Errorf("Error: Failed to query projects table for %v, %v: %v", searchCriteria, purlType, err)
-		//return nil, fmt.Errorf("failed to query the projects table: %v", err)
+		fmt.Printf("failed to run query3 the projects table: %v\n", err)
 		return
 	}
 	c <- allComponents
 	return
 }
 
-func getComponentsQ4(con *sqlx.Conn, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
+func getComponentsQ4(db *sqlx.DB, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
 	var allComponents []Component
 
-	err := con.SelectContext(ctx, &allComponents,
+	err := db.SelectContext(ctx, &allComponents,
 		"SELECT p.component, p.purl_name, m.purl_type from projects p"+
 			" LEFT JOIN mines m ON p.mine_id = m.id"+
 			" WHERE p.purl_name like $1"+
@@ -248,17 +233,17 @@ func getComponentsQ4(con *sqlx.Conn, ctx context.Context, c chan []Component, se
 
 	if err != nil {
 		zlog.S.Errorf("Error: Failed to query projects table for %v, %v: %v", searchCriteria, purlType, err)
-		//return nil, fmt.Errorf("failed to query the projects table: %v", err)
+		fmt.Printf("failed to run query4 the projects table: %v\n", err)
 		return
 	}
 	c <- allComponents
 	return
 }
 
-func getComponentsQ5(con *sqlx.Conn, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
+func getComponentsQ5(db *sqlx.DB, ctx context.Context, c chan []Component, searchCriteria, purlType string, limit, offset int) {
 	var allComponents []Component
 
-	err := con.SelectContext(ctx, &allComponents,
+	err := db.SelectContext(ctx, &allComponents,
 		"SELECT p.component, p.purl_name, m.purl_type from projects p"+
 			" LEFT JOIN mines m ON p.mine_id = m.id"+
 			" WHERE p.purl_name like $1"+
@@ -269,7 +254,7 @@ func getComponentsQ5(con *sqlx.Conn, ctx context.Context, c chan []Component, se
 
 	if err != nil {
 		zlog.S.Errorf("Error: Failed to query projects table for %v, %v: %v", searchCriteria, purlType, err)
-		//return nil, fmt.Errorf("failed to query the projects table: %v", err)
+		fmt.Printf("failed to run query5 the projects table: %v\n", err)
 		return
 	}
 	c <- allComponents
