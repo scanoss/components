@@ -27,7 +27,6 @@ import (
 )
 
 var DEFAULT_MAX_VERSION_LIMIT = 50
-
 var DEFAULT_MAX_COMPONENT_LIMIT = 50
 
 // loadSqlData Load the specified SQL files into the supplied DB
@@ -83,12 +82,6 @@ func CloseConn(conn *sqlx.Conn) {
 		if err != nil {
 			zlog.S.Warnf("Problem closing DB connection: %v", err)
 		}
-	}
-}
-
-func CloseConnections(conn []*sqlx.Conn) {
-	for _, v := range conn {
-		CloseConn(v)
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 
 type ComponentVersionsInput struct {
 	Purl  string `json:"purl"`
-	Limit int    `json:"limit,omitempty"`
+	Limit int    `json:"limit"`
 }
 
 func ParseComponentVersionsInput(input []byte) (ComponentVersionsInput, error) {

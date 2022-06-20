@@ -75,15 +75,8 @@ func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit in
 		limit = DEFAULT_MAX_VERSION_LIMIT
 	}
 
-	conn, err := m.db.Connx(m.ctx) // Get a connection from the pool
-	defer CloseConn(conn)
-	if err != nil {
-		zlog.S.Errorf("Failed to get a database connection from the pool: %v", err)
-		return nil, errors.New("problem getting database pool connection")
-	}
-
 	var allUrls []AllUrl
-	err = conn.SelectContext(m.ctx, &allUrls,
+	err := m.db.SelectContext(m.ctx, &allUrls,
 		"SELECT component, version,"+
 			" l.license_name AS license, l.spdx_id AS license_id, l.is_spdx AS is_spdx,"+
 			" purl_name, mine_id FROM all_urls u"+

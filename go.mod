@@ -3,8 +3,8 @@ module scanoss.com/components
 go 1.17
 
 require (
-	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/golobby/config/v3 v3.3.1
+	github.com/google/go-cmp v0.5.5
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-sqlite3 v1.14.10

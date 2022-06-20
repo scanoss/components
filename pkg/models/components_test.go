@@ -19,6 +19,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	zlog "scanoss.com/components/pkg/logger"
@@ -82,39 +83,56 @@ func TestComponentsSearch(t *testing.T) {
 }
 
 func TestRemoveDuplicates(t *testing.T) {
+
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+		t.Errorf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	compEmpty := Component{}
+
+	compSemiComplete := Component{
+		Component: "hyx-decrypt",
+		PurlType:  "npm",
+		PurlName:  "hyx-decrypt",
+		Url:       "",
 	}
 
-	var components = []Component{
-		{
-			Component: "comp1",
-			PurlType:  "purlType",
-			PurlName:  "purlName",
-			Url:       "url",
-		},
-		{
-			Component: "angular",
-			PurlType:  "github",
-			PurlName:  "angular",
-			Url:       "url",
-		},
-		{
-			Component: "comp1",
-			PurlType:  "purlType",
-			PurlName:  "purlName",
-			Url:       "url",
-		},
+	comp1 := Component{
+		Component: "scanner",
+		PurlType:  "npm",
+		PurlName:  "scanner",
+		Url:       "https://www.npmjs.com/package/scanner",
 	}
 
-	var uniqueComponents []Component
-	uniqueComponents = removeDuplicateComponents(components)
-
-	if len(uniqueComponents) != 2 {
-		t.Fatalf("Expected only 2 elements")
+	comp1Similar := Component{
+		Component: "scanner",
+		PurlType:  "npm",
+		PurlName:  "scanner",
+		Url:       "www.npmjs.com/package/scanner",
 	}
 
-	fmt.Printf("%v+", uniqueComponents)
+	comp2 := Component{
+		Component: "graph",
+		PurlType:  "npm",
+		PurlName:  "graph",
+		Url:       "https://www.npmjs.com/package/graph",
+	}
 
+	testTable := []struct {
+		input []Component
+		want  []Component
+	}{
+		{input: []Component{comp1, comp1, comp1, comp1}, want: []Component{comp1}},
+		{input: []Component{comp1, compEmpty, comp1, compSemiComplete}, want: []Component{comp1, compEmpty, compSemiComplete}},
+		{input: []Component{compEmpty, compEmpty}, want: []Component{compEmpty}},
+		{input: []Component{comp1, compEmpty, comp2}, want: []Component{comp1, compEmpty, comp2}},
+		{input: []Component{comp1, comp1Similar}, want: []Component{comp1, comp1Similar}},
+	}
+
+	for _, test := range testTable {
+		if result := removeDuplicateComponents(test.input); !cmp.Equal(result, test.want) {
+			diff := cmp.Diff(result, test.want)
+			t.Fatalf("Expected %v and got %v\n Differences: %v", result, test.want, diff)
+		}
+	}
 }

@@ -50,12 +50,13 @@ func TestSearchComponentsUseCase(t *testing.T) {
 	}
 	models.CloseConn(conn)
 
+	compUc := NewComponents(ctx, db)
+
 	var compRequestData = `{
 		"component": "angular",
 		"package": "github"
 	}
 	`
-	compUc := NewComponents(ctx, db)
 	requestDto, err := dtoSearchComponent.ParseComponentInput([]byte(compRequestData))
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when parsing input json", err)
@@ -65,6 +66,7 @@ func TestSearchComponentsUseCase(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when getting components", err)
 	}
 	fmt.Printf("Components response: %+v\n", components)
+
 }
 
 func TestGetComponentVersionsUseCase(t *testing.T) {

@@ -54,7 +54,7 @@ func (m *ComponentModel) GetComponents(searchCriteria, purlType string, limit, o
 	fnGetComponents = append(fnGetComponents, getComponentsQ5)
 
 	var allComponents []Component
-
+	zlog.S.Infof("search parameter: %v", searchCriteria)
 	if len(searchCriteria) == 0 {
 		zlog.S.Error("Please specify a valid Component Name to query")
 		return nil, errors.New("please specify a valid component Name to query")
