@@ -94,3 +94,65 @@ func CloseRows(rows *sqlx.Rows) {
 		}
 	}
 }
+
+type job struct {
+	job_id int
+	query  string
+}
+
+type result[T any] struct {
+	job_id int
+	query  string
+	err    error
+	dest   []T
+}
+
+func workerQuery[T any](db *sqlx.DB, ctx context.Context, jobs chan job, results chan result[T]) {
+	var structResults []T
+	for j := range jobs {
+		err := db.SelectContext(ctx, &structResults, j.query)
+		results <- result[T]{
+			job_id: j.job_id,
+			query:  j.query,
+			err:    err,
+			dest:   structResults,
+		}
+	}
+}
+
+func RunQueriesInParallel[T any](db *sqlx.DB, ctx context.Context, queries []string) ([]T, error) {
+	numJobs := len(queries)
+	jobChan := make(chan job, numJobs)
+	resultChan := make(chan result[T], numJobs)
+
+	for w := 1; w <= numJobs; w++ {
+		go workerQuery(db, ctx, jobChan, resultChan)
+	}
+
+	for i, query := range queries {
+		jobChan <- job{
+			job_id: i,
+			query:  query,
+		}
+	}
+	close(jobChan)
+
+	resMap := make(map[int][]T)
+	for a := 1; a <= numJobs; a++ {
+		res := <-resultChan
+		if res.err == nil {
+			resMap[res.job_id] = res.dest
+		} else {
+			return []T{}, res.err
+		}
+	}
+
+	var output []T
+	for i := range queries {
+		if v, ok := resMap[i]; ok {
+			output = append(output, v...)
+		}
+	}
+
+	return output, nil
+}

@@ -17,8 +17,11 @@
 package models
 
 import (
+	"context"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	zlog "scanoss.com/components/pkg/logger"
 	"testing"
 )
 
@@ -48,4 +51,51 @@ func TestDbLoad(t *testing.T) {
 	if err == nil {
 		t.Errorf("did not fail to load SQL test data")
 	}
+}
+
+func TestRunQueriesInParallel(t *testing.T) {
+	ctx := context.Background()
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	db, err := sqlx.Connect("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	db.SetMaxOpenConns(1)
+	defer CloseDB(db)
+	conn, err := db.Connx(ctx) // Get a connection from the pool (with context)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+
+	err = LoadTestSqlData(db, ctx, conn)
+	if err != nil {
+		t.Fatalf("failed to load SQL test data: %v", err)
+	}
+	CloseConn(conn)
+
+	var components []Component
+	q1 := "SELECT component FROM projects LIMIT 2"
+	q2 := "SELECT p.component, p.purl_name from projects p ORDER BY purl_name LIMIT 2"
+	q3 := "SELECT p.component, p.purl_name from projects p ORDER BY purl_name DESC LIMIT 2"
+	components, err = RunQueriesInParallel[Component](db, ctx, []string{q1, q2, q3})
+	if err != nil {
+		t.Errorf("Error running queries in parallel")
+	}
+
+	fmt.Printf("Results of queries executed for components: %v\n", components)
+
+	var mines []Mine
+	q1 = "SELECT * FROM mines LIMIT 2"
+	q2 = "SELECT * FROM mines LIMIT 2"
+
+	mines, err = RunQueriesInParallel[Mine](db, ctx, []string{q1, q2})
+	if err != nil {
+		t.Errorf("Error running queries in parallel")
+	}
+	fmt.Printf("Results of queries executed for Mines: %v\n", mines)
+
 }

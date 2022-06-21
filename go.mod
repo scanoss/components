@@ -1,6 +1,6 @@
 module scanoss.com/components
 
-go 1.17
+go 1.18
 
 require (
 	github.com/golobby/config/v3 v3.3.1
