@@ -82,7 +82,7 @@ func TestComponentsSearch(t *testing.T) {
 	fmt.Printf("Components: %v\n", components)
 }
 
-func TestRemoveDuplicates(t *testing.T) {
+func TestRemoveDuplicated(t *testing.T) {
 
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -130,7 +130,7 @@ func TestRemoveDuplicates(t *testing.T) {
 	}
 
 	for _, test := range testTable {
-		if result := removeDuplicateComponents(test.input); !cmp.Equal(result, test.want) {
+		if result := RemoveDuplicated[Component](test.input); !cmp.Equal(result, test.want) {
 			diff := cmp.Diff(result, test.want)
 			t.Fatalf("Expected %v and got %v\n Differences: %v", result, test.want, diff)
 		}

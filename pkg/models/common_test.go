@@ -19,6 +19,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	zlog "scanoss.com/components/pkg/logger"
@@ -29,6 +30,12 @@ func TestDbLoad(t *testing.T) {
 	db, err := sqlx.Connect("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	db.SetMaxOpenConns(1)
+
+	err = zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer CloseDB(db)
 	err = loadSqlData(db, nil, nil, "./tests/mines.sql")
@@ -106,4 +113,59 @@ func TestRunQueriesInParallel(t *testing.T) {
 		t.Errorf("Error running multiple queries %v", err)
 	}
 	fmt.Printf("Result of running queries %v:\n%v\n ", queryJobs, res1)
+}
+
+func TestRemoveDuplicates(t *testing.T) {
+
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	compEmpty := Component{}
+
+	compSemiComplete := Component{
+		Component: "hyx-decrypt",
+		PurlType:  "npm",
+		PurlName:  "hyx-decrypt",
+		Url:       "",
+	}
+
+	comp1 := Component{
+		Component: "scanner",
+		PurlType:  "npm",
+		PurlName:  "scanner",
+		Url:       "https://www.npmjs.com/package/scanner",
+	}
+
+	comp1Similar := Component{
+		Component: "scanner",
+		PurlType:  "npm",
+		PurlName:  "scanner",
+		Url:       "www.npmjs.com/package/scanner",
+	}
+
+	comp2 := Component{
+		Component: "graph",
+		PurlType:  "npm",
+		PurlName:  "graph",
+		Url:       "https://www.npmjs.com/package/graph",
+	}
+
+	testTable := []struct {
+		input []Component
+		want  []Component
+	}{
+		{input: []Component{comp1, comp1, comp1, comp1}, want: []Component{comp1}},
+		{input: []Component{comp1, compEmpty, comp1, compSemiComplete}, want: []Component{comp1, compEmpty, compSemiComplete}},
+		{input: []Component{compEmpty, compEmpty}, want: []Component{compEmpty}},
+		{input: []Component{comp1, compEmpty, comp2}, want: []Component{comp1, compEmpty, comp2}},
+		{input: []Component{comp1, comp1Similar}, want: []Component{comp1, comp1Similar}},
+	}
+
+	for _, test := range testTable {
+		if result := RemoveDuplicated[Component](test.input); !cmp.Equal(result, test.want) {
+			diff := cmp.Diff(result, test.want)
+			t.Fatalf("Expected %v and got %v\n Differences: %v", result, test.want, diff)
+		}
+	}
 }

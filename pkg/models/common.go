@@ -162,3 +162,15 @@ func RunQueriesInParallel[T any](db *sqlx.DB, ctx context.Context, queryJobs []Q
 	}
 	return output, nil
 }
+
+func RemoveDuplicated[T comparable](items []T) []T {
+	var unique []T
+	m := make(map[T]int)
+	for _, item := range items {
+		if _, exist := m[item]; !exist {
+			m[item] = len(unique)
+			unique = append(unique, item)
+		}
+	}
+	return unique
+}
