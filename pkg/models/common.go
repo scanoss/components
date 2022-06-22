@@ -95,33 +95,39 @@ func CloseRows(rows *sqlx.Rows) {
 	}
 }
 
+type QueryJob struct {
+	query string
+	args  []any
+}
+
 type job struct {
-	job_id int
-	query  string
+	jobId int
+	query string
+	args  []any
 }
 
 type result[T any] struct {
-	job_id int
-	query  string
-	err    error
-	dest   []T
+	jobId int
+	query string
+	err   error
+	dest  []T
 }
 
 func workerQuery[T any](db *sqlx.DB, ctx context.Context, jobs chan job, results chan result[T]) {
 	var structResults []T
 	for j := range jobs {
-		err := db.SelectContext(ctx, &structResults, j.query)
+		err := db.SelectContext(ctx, &structResults, j.query, j.args...)
 		results <- result[T]{
-			job_id: j.job_id,
-			query:  j.query,
-			err:    err,
-			dest:   structResults,
+			jobId: j.jobId,
+			query: j.query,
+			err:   err,
+			dest:  structResults,
 		}
 	}
 }
 
-func RunQueriesInParallel[T any](db *sqlx.DB, ctx context.Context, queries []string) ([]T, error) {
-	numJobs := len(queries)
+func RunQueriesInParallel[T any](db *sqlx.DB, ctx context.Context, queryJobs []QueryJob) ([]T, error) {
+	numJobs := len(queryJobs)
 	jobChan := make(chan job, numJobs)
 	resultChan := make(chan result[T], numJobs)
 
@@ -129,30 +135,30 @@ func RunQueriesInParallel[T any](db *sqlx.DB, ctx context.Context, queries []str
 		go workerQuery(db, ctx, jobChan, resultChan)
 	}
 
-	for i, query := range queries {
+	for i, queryJob := range queryJobs {
 		jobChan <- job{
-			job_id: i,
-			query:  query,
+			jobId: i,
+			query: queryJob.query,
+			args:  queryJob.args,
 		}
 	}
 	close(jobChan)
 
 	resMap := make(map[int][]T)
-	for a := 1; a <= numJobs; a++ {
+	for i := 0; i < numJobs; i++ {
 		res := <-resultChan
 		if res.err == nil {
-			resMap[res.job_id] = res.dest
+			resMap[res.jobId] = res.dest
 		} else {
 			return []T{}, res.err
 		}
 	}
 
 	var output []T
-	for i := range queries {
+	for i := 0; i <= numJobs; i++ {
 		if v, ok := resMap[i]; ok {
 			output = append(output, v...)
 		}
 	}
-
 	return output, nil
 }

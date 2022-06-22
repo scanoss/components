@@ -77,25 +77,33 @@ func TestRunQueriesInParallel(t *testing.T) {
 	}
 	CloseConn(conn)
 
-	var components []Component
-	q1 := "SELECT component FROM projects LIMIT 2"
-	q2 := "SELECT p.component, p.purl_name from projects p ORDER BY purl_name LIMIT 2"
-	q3 := "SELECT p.component, p.purl_name from projects p ORDER BY purl_name DESC LIMIT 2"
-	components, err = RunQueriesInParallel[Component](db, ctx, []string{q1, q2, q3})
-	if err != nil {
-		t.Errorf("Error running queries in parallel")
+	queryJobs := []QueryJob{
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.component LIKE $1" +
+				" LIMIT $2",
+			args: []any{"%angular%", 2},
+		},
 	}
-
-	fmt.Printf("Results of queries executed for components: %v\n", components)
-
-	var mines []Mine
-	q1 = "SELECT * FROM mines LIMIT 2"
-	q2 = "SELECT * FROM mines LIMIT 2"
-
-	mines, err = RunQueriesInParallel[Mine](db, ctx, []string{q1, q2})
+	res, err := RunQueriesInParallel[Component](db, ctx, queryJobs)
 	if err != nil {
-		t.Errorf("Error running queries in parallel")
+		t.Errorf("Error running multiple queries %v", err)
 	}
-	fmt.Printf("Results of queries executed for Mines: %v\n", mines)
+	fmt.Printf("Result of running queries %v:\n%v\n ", queryJobs, res)
 
+	queryJobs = []QueryJob{
+		{
+			query: "SELECT id, name FROM mines LIMIT 1",
+		},
+		{
+			query: "SELECT purl_type FROM mines LIMIT $1",
+			args:  []any{3},
+		},
+	}
+	res1, err := RunQueriesInParallel[Mine](db, ctx, queryJobs)
+	if err != nil {
+		t.Errorf("Error running multiple queries %v", err)
+	}
+	fmt.Printf("Result of running queries %v:\n%v\n ", queryJobs, res1)
 }
