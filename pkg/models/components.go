@@ -25,6 +25,8 @@ import (
 )
 
 var DEFAULT_PURL_TYPE = "github"
+var DEFAULT_MAX_VERSION_LIMIT = 50
+var DEFAULT_MAX_COMPONENT_LIMIT = 50
 
 type ComponentModel struct {
 	ctx context.Context
@@ -125,6 +127,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 	}
 
 	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
+	// Valoration
 	allComponents = RemoveDuplicated[Component](allComponents)
 	return allComponents, nil
 }
@@ -171,4 +174,12 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 	}
 	allComponents = RemoveDuplicated[Component](allComponents)
 	return allComponents, nil
+}
+
+func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, limit, offset int) ([]Component, error) {
+	return []Component{}, nil
+}
+
+func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlType string, limit, offset int) ([]Component, error) {
+	return []Component{}, nil
 }

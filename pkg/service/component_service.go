@@ -76,7 +76,7 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 	//Verify the input request
 	if len(request.Purl) == 0 {
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "There is no purl to retrieve component"}
-		return &pb.CompVersionResponse{Status: &statusResp}, errors.New("There is no purl to retrieve component")
+		return &pb.CompVersionResponse{Status: &statusResp}, errors.New("there is no purl to retrieve component")
 	}
 
 	//Convert the request to internal DTO

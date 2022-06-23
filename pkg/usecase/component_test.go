@@ -92,7 +92,8 @@ func TestGetComponentVersionsUseCase(t *testing.T) {
 	models.CloseConn(conn)
 
 	var compVersionRequestData = `{
-		"purl": "pkg:gem/tablestyle"
+		"purl": "pkg:gem/tablestyle",
+		"limit": 10
 	}
 	`
 	compUc := NewComponents(ctx, db)

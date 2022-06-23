@@ -47,8 +47,12 @@ func (c ComponentUseCase) SearchComponents(request dtoSearchComponent.ComponentS
 
 	if len(request.Search) != 0 {
 		searchResults, err = c.components.GetComponents(request.Search, request.Package, request.Limit, request.Offset)
-	} else {
+	} else if len(request.Component) != 0 && len(request.Vendor) == 0 {
 		searchResults, err = c.components.GetComponentsByNameType(request.Component, request.Package, request.Limit, request.Offset)
+	} else if len(request.Component) == 0 && len(request.Vendor) != 0 {
+		searchResults, err = c.components.GetComponentsByVendorType(request.Vendor, request.Package, request.Limit, request.Offset)
+	} else if len(request.Component) != 0 && len(request.Vendor) != 0 {
+		searchResults, err = c.components.GetComponentsByNameVendorType(request.Component, request.Vendor, request.Package, request.Limit, request.Offset)
 	}
 
 	if err != nil {
@@ -103,10 +107,25 @@ func (c ComponentUseCase) GetComponentVersions(request dtoGetComponentVersion.Co
 	if len(allUrls) > 0 {
 		output.Url = projectURL
 		output.Component = allUrls[0].Component
+		output.Versions = []dtoGetComponentVersion.ComponentVersion{}
 		for _, u := range allUrls {
 			var version dtoGetComponentVersion.ComponentVersion
-			version.Version = u.Version
 			var license dtoGetComponentVersion.ComponentLicense
+
+			if len(u.Version) == 0 {
+				zlog.S.Infof("Empty version string supplied for: %+v. Skipping", u)
+				continue
+			}
+
+			version.Version = u.Version
+
+			if len(u.License) == 0 {
+				zlog.S.Infof("Empty license string supplied for: %+v. Skipping", u)
+				version.Licenses = []dtoGetComponentVersion.ComponentLicense{}
+				output.Versions = append(output.Versions, version)
+				continue
+			}
+
 			license.Name = u.License
 			license.SpdxId = u.LicenseId
 			license.IsSpdx = u.IsSpdx
