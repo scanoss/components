@@ -26,6 +26,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap/zapcore"
+	"net/url"
 	"os"
 	myconfig "scanoss.com/components/pkg/config"
 	zlog "scanoss.com/components/pkg/logger"
@@ -111,8 +112,8 @@ func RunServer() error {
 	} else {
 		dsn = fmt.Sprintf("%s://%s:%s@%s/%s?sslmode=%s",
 			cfg.Database.Driver,
-			cfg.Database.User,
-			cfg.Database.Passwd,
+			url.QueryEscape(cfg.Database.User),
+			url.QueryEscape(cfg.Database.Passwd),
 			cfg.Database.Host,
 			cfg.Database.Schema,
 			cfg.Database.SslMode)

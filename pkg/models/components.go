@@ -19,7 +19,6 @@ package models
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/jmoiron/sqlx"
 	zlog "scanoss.com/components/pkg/logger"
 )
@@ -63,11 +62,6 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		purlType = DEFAULT_PURL_TYPE
 	}
 
-	limitPerQuery := limit / 6
-	if limitPerQuery <= 0 {
-		limitPerQuery = 1
-	}
-
 	queryJobs := []QueryJob{
 		{
 			query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
@@ -76,7 +70,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 				" AND m.purl_type = $2" +
 				" ORDER BY git_created_at NULLS LAST , git_forks DESC, git_watchers DESC" +
 				" LIMIT $3 OFFSET $4;",
-			args: []any{search, purlType, limitPerQuery, offset},
+			args: []any{search, purlType, 1, offset},
 		},
 		{
 			query: "SELECT p.component, p.purl_name, m.purl_type FROM projects p" +
@@ -85,7 +79,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 				" AND m.purl_type = $2" +
 				" ORDER BY git_created_at NULLS LAST, git_forks DESC, git_watchers DESC" +
 				" LIMIT $3 OFFSET $4;",
-			args: []any{search, purlType, limitPerQuery, offset},
+			args: []any{search, purlType, 1, offset},
 		},
 		{
 			query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
@@ -94,7 +88,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 				" AND m.purl_type = $2" +
 				" ORDER BY git_created_at NULLS LAST, git_forks DESC, git_watchers DESC" +
 				" LIMIT $3 OFFSET $4",
-			args: []any{"%" + search + "%" + search + "%", purlType, limitPerQuery, offset},
+			args: []any{"%" + search + "%" + search + "%", purlType, 1, offset},
 		},
 		{
 			query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
@@ -104,7 +98,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 				" AND m.purl_type = $3" +
 				" ORDER BY git_created_at NULLS LAST, git_forks DESC, git_watchers DESC" +
 				" LIMIT $4 OFFSET $5",
-			args: []any{"%" + search + "%", "%" + search + "%" + search + "%", purlType, limitPerQuery, offset},
+			args: []any{"%" + search + "%", "%" + search + "%" + search + "%", purlType, 1, offset},
 		},
 		{
 			query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
@@ -113,7 +107,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 				" AND m.purl_type = $2" +
 				" ORDER BY git_created_at NULLS LAST, git_forks DESC, git_watchers DESC" +
 				" LIMIT $3 OFFSET $4",
-			args: []any{search + "%", purlType, limitPerQuery, offset},
+			args: []any{search + "%", purlType, 1, offset},
 		},
 		{
 			query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
@@ -122,22 +116,29 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 				" AND m.purl_type = $2" +
 				" ORDER BY git_created_at NULLS LAST, git_forks DESC, git_watchers DESC" +
 				" LIMIT $3 OFFSET $4",
-			args: []any{"%" + search, purlType, limitPerQuery, offset},
+			args: []any{"%" + search, purlType, 1, offset},
 		},
 	}
 
+	// Fix the limit for each query
+	limitPerQuery := limit / len(queryJobs)
+	if limitPerQuery <= 0 {
+		limitPerQuery = 1
+	}
+
+	for _, q := range queryJobs {
+		q.args[2] = limitPerQuery
+	}
+
 	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
-	// Valoration
 	allComponents = RemoveDuplicated[Component](allComponents)
 	return allComponents, nil
 }
 
 func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limit, offset int) ([]Component, error) {
-
-	var allComponents []Component
 	if len(compName) == 0 {
 		zlog.S.Error("Please specify a valid Component Name to query")
-		return allComponents, errors.New("please specify a valid component Name to query")
+		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
 
 	if limit > DEFAULT_MAX_COMPONENT_LIMIT || limit <= 0 {
@@ -152,32 +153,122 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		purlType = DEFAULT_PURL_TYPE
 	}
 
-	con, err := m.db.Connx(m.ctx)
-	defer CloseConn(con)
-
-	if err != nil {
-		zlog.S.Errorf("Failed to get a database connection from the pool: %v", err)
-		return allComponents, err
+	queryJobs := []QueryJob{
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.component LIKE $1" +
+				" AND m.purl_type = $2" +
+				" LIMIT $3 OFFSET $4",
+			args: []any{compName, purlType, 1, offset},
+		},
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.component LIKE $1" +
+				" AND m.purl_type = $2" +
+				" LIMIT $3 OFFSET $4",
+			args: []any{"%" + compName + "%", purlType, 1, offset},
+		},
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.component LIKE $1" +
+				" AND m.purl_type = $2" +
+				" LIMIT $3 OFFSET $4",
+			args: []any{compName + "%", purlType, 1, offset},
+		},
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.component LIKE $1" +
+				" AND m.purl_type = $2" +
+				" LIMIT $3 OFFSET $4",
+			args: []any{"%" + compName, purlType, 1, offset},
+		},
 	}
 
-	err = con.SelectContext(m.ctx, &allComponents,
-		"SELECT component, purl_name, m.purl_type FROM projects p "+
-			" LEFT JOIN mines m ON p.mine_id = m.id"+
-			" WHERE p.component LIKE $1"+
-			" AND m.purl_type = $2"+
-			" LIMIT $3 OFFSET $4",
-		compName, purlType, limit, offset)
-
-	if err != nil {
-		zlog.S.Errorf("Error: Failed to query projects table for %v, %v: %v", compName, purlType, err)
-		return allComponents, fmt.Errorf("failed to query the projects table: %v", err)
+	// Fix the limit for each query
+	limitPerQuery := limit / len(queryJobs)
+	if limitPerQuery <= 0 {
+		limitPerQuery = 1
 	}
+
+	for _, q := range queryJobs {
+		q.args[2] = limitPerQuery
+	}
+
+	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
 	return allComponents, nil
 }
 
 func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, limit, offset int) ([]Component, error) {
-	return []Component{}, nil
+	if len(vendorName) == 0 {
+		zlog.S.Error("Please specify a valid Component Name to query")
+		return []Component{}, errors.New("please specify a valid component Name to query")
+	}
+
+	if limit > DEFAULT_MAX_COMPONENT_LIMIT || limit <= 0 {
+		limit = DEFAULT_MAX_COMPONENT_LIMIT
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	if len(purlType) == 0 {
+		purlType = DEFAULT_PURL_TYPE
+	}
+
+	queryJobs := []QueryJob{
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.vendor LIKE $1" +
+				" AND m.purl_type = $2" +
+				" LIMIT $3 OFFSET $4",
+			args: []any{vendorName, purlType, 1, offset},
+		},
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.vendor LIKE $1" +
+				" AND m.purl_type = $2" +
+				" LIMIT $3 OFFSET $4",
+			args: []any{"%" + vendorName + "%", purlType, 1, offset},
+		},
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.vendor LIKE $1" +
+				" AND m.purl_type = $2" +
+				" LIMIT $3 OFFSET $4",
+			args: []any{vendorName + "%", purlType, 1, offset},
+		},
+		{
+			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+				" LEFT JOIN mines m ON p.mine_id = m.id" +
+				" WHERE p.vendor LIKE $1" +
+				" AND m.purl_type = $2" +
+				" LIMIT $3 OFFSET $4",
+			args: []any{"%" + vendorName, purlType, 1, offset},
+		},
+	}
+
+	// Fix the limit for each query
+	limitPerQuery := limit / len(queryJobs)
+	if limitPerQuery <= 0 {
+		limitPerQuery = 1
+	}
+
+	for _, q := range queryJobs {
+		q.args[2] = limitPerQuery
+	}
+
+	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
+	allComponents = RemoveDuplicated[Component](allComponents)
+	return allComponents, nil
 }
 
 func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlType string, limit, offset int) ([]Component, error) {
