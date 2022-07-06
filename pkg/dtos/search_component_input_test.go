@@ -1,12 +1,13 @@
-package dtoSearchComponent
+package dtos
 
 import (
+	"fmt"
 	"github.com/google/go-cmp/cmp"
 	zlog "scanoss.com/components/pkg/logger"
 	"testing"
 )
 
-func TestDependencyInput(t *testing.T) {
+func TestParseComponentSearchInput(t *testing.T) {
 
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -52,18 +53,41 @@ func TestDependencyInput(t *testing.T) {
 	}
 
 	for _, test := range goodTest {
-		if res, err := ParseComponentInput([]byte(test.input)); !cmp.Equal(test.want, res) || err != nil {
-			if err != nil {
-				t.Errorf("Error generating dto: %v\n. Wanted %v, Input: %v \n", err, test.want, test.input)
-			}
+		res, err := ParseComponentSearchInput([]byte(test.input))
+		if !cmp.Equal(test.want, res) || err != nil {
+			t.Errorf("Error generating dto: %v\n. Wanted %v, Input: %v \n", err, test.want, test.input)
 		}
 	}
 
 	// All the test in this table are expected to fail
 	for _, test := range badTest {
-		if _, err := ParseComponentInput([]byte(test.input)); err == nil {
+		if _, err := ParseComponentSearchInput([]byte(test.input)); err == nil {
 			t.Errorf("Expected an error for input: %v", test.input)
 		}
 	}
 
+	_, err = ParseComponentSearchInput([]byte(""))
+	if err == nil {
+		t.Errorf("Expected an error for empty input")
+	}
+}
+
+func TestExportComponentSearchInput(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+
+	bytes, err := ExportComponentSearchInput(ComponentSearchInput{Search: "angular", Package: "npm", Limit: 10})
+	if err != nil {
+		t.Errorf("Failed to export component search input: %v\n", err)
+	}
+	fmt.Printf("Converting component search json to bytes: %v\n", bytes)
+
+	bytes, err = ExportComponentSearchInput(ComponentSearchInput{})
+	if err != nil {
+		t.Errorf("Failed to export component search input: %v\n", err)
+	}
+	fmt.Printf("Converting empty component search input json to bytes: %v\n", bytes)
 }

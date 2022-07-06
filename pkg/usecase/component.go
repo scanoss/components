@@ -20,8 +20,7 @@ import (
 	"context"
 	"errors"
 	"github.com/jmoiron/sqlx"
-	"scanoss.com/components/pkg/dtos/dtoGetComponentVersion"
-	"scanoss.com/components/pkg/dtos/dtoSearchComponent"
+	"scanoss.com/components/pkg/dtos"
 	zlog "scanoss.com/components/pkg/logger"
 	"scanoss.com/components/pkg/models"
 	"scanoss.com/components/pkg/utils"
@@ -41,7 +40,7 @@ func NewComponents(ctx context.Context, db *sqlx.DB) *ComponentUseCase {
 	}
 }
 
-func (c ComponentUseCase) SearchComponents(request dtoSearchComponent.ComponentSearchInput) (dtoSearchComponent.ComponentsSearchOutput, error) {
+func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (dtos.ComponentsSearchOutput, error) {
 	var err error
 	var searchResults []models.Component
 
@@ -63,10 +62,10 @@ func (c ComponentUseCase) SearchComponents(request dtoSearchComponent.ComponentS
 		searchResults[i].Url, _ = utils.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
 	}
 
-	var componentsSearchResults []dtoSearchComponent.ComponentSearchOutput
+	var componentsSearchResults []dtos.ComponentSearchOutput
 
 	for _, component := range searchResults {
-		var componentSearchResult dtoSearchComponent.ComponentSearchOutput
+		var componentSearchResult dtos.ComponentSearchOutput
 		componentSearchResult.Component = component.Component
 		componentSearchResult.Purl = "pkg:" + component.PurlType + "/" + component.PurlName
 		componentSearchResult.Url = component.Url
@@ -74,43 +73,43 @@ func (c ComponentUseCase) SearchComponents(request dtoSearchComponent.ComponentS
 		componentsSearchResults = append(componentsSearchResults, componentSearchResult)
 	}
 
-	return dtoSearchComponent.ComponentsSearchOutput{Components: componentsSearchResults}, nil
+	return dtos.ComponentsSearchOutput{Components: componentsSearchResults}, nil
 }
 
-func (c ComponentUseCase) GetComponentVersions(request dtoGetComponentVersion.ComponentVersionsInput) (dtoGetComponentVersion.ComponentVersionsOutput, error) {
+func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInput) (dtos.ComponentVersionsOutput, error) {
 
 	if len(request.Purl) == 0 {
 		zlog.S.Errorf("The request does not contains purl to retrieve component versions")
-		return dtoGetComponentVersion.ComponentVersionsOutput{}, errors.New("The request does not contains purl to retrieve component versions")
+		return dtos.ComponentVersionsOutput{}, errors.New("The request does not contains purl to retrieve component versions")
 	}
 
 	allUrls, err := c.allUrl.GetUrlsByPurlString(request.Purl, request.Limit)
 	if err != nil {
 		zlog.S.Errorf("Problem encountered gettings URLs versions for: %v - %v.", request.Purl, err)
-		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
+		return dtos.ComponentVersionsOutput{}, err
 	}
 
 	purl, err := utils.PurlFromString(request.Purl)
 	if err != nil {
 		zlog.S.Errorf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
-		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
+		return dtos.ComponentVersionsOutput{}, err
 	}
 
 	projectURL, err := utils.ProjectUrl(request.Purl, purl.Type)
 	if err != nil {
 		zlog.S.Errorf("Problem generating the project: %v - %v.", request.Purl, err)
-		return dtoGetComponentVersion.ComponentVersionsOutput{}, err
+		return dtos.ComponentVersionsOutput{}, err
 	}
 
-	var output dtoGetComponentVersion.ComponentOutput
+	var output dtos.ComponentOutput
 	output.Purl = request.Purl
 	if len(allUrls) > 0 {
 		output.Url = projectURL
 		output.Component = allUrls[0].Component
-		output.Versions = []dtoGetComponentVersion.ComponentVersion{}
+		output.Versions = []dtos.ComponentVersion{}
 		for _, u := range allUrls {
-			var version dtoGetComponentVersion.ComponentVersion
-			var license dtoGetComponentVersion.ComponentLicense
+			var version dtos.ComponentVersion
+			var license dtos.ComponentLicense
 
 			if len(u.Version) == 0 {
 				zlog.S.Infof("Empty version string supplied for: %+v. Skipping", u)
@@ -121,7 +120,7 @@ func (c ComponentUseCase) GetComponentVersions(request dtoGetComponentVersion.Co
 
 			if len(u.License) == 0 {
 				zlog.S.Infof("Empty license string supplied for: %+v. Skipping", u)
-				version.Licenses = []dtoGetComponentVersion.ComponentLicense{}
+				version.Licenses = []dtos.ComponentLicense{}
 				output.Versions = append(output.Versions, version)
 				continue
 			}
@@ -133,5 +132,5 @@ func (c ComponentUseCase) GetComponentVersions(request dtoGetComponentVersion.Co
 			output.Versions = append(output.Versions, version)
 		}
 	}
-	return dtoGetComponentVersion.ComponentVersionsOutput{Component: output}, nil
+	return dtos.ComponentVersionsOutput{Component: output}, nil
 }

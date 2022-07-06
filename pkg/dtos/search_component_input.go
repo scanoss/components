@@ -1,4 +1,4 @@
-package dtoSearchComponent
+package dtos
 
 import (
 	"encoding/json"
@@ -16,16 +16,25 @@ type ComponentSearchInput struct {
 	Offset    int    `json:"offset"`
 }
 
-func ParseComponentInput(input []byte) (ComponentSearchInput, error) {
+func ParseComponentSearchInput(input []byte) (ComponentSearchInput, error) {
 	if input == nil || len(input) == 0 {
-		return ComponentSearchInput{}, errors.New("no input component data supplied to parse")
+		return ComponentSearchInput{}, errors.New("no data supplied to parse")
 	}
 	var data ComponentSearchInput
 	err := json.Unmarshal(input, &data)
 	if err != nil {
 		zlog.S.Errorf("Parse failure: %v", err)
-		return ComponentSearchInput{}, errors.New(fmt.Sprintf("failed to parse component input data: %v", err))
+		return ComponentSearchInput{}, errors.New(fmt.Sprintf("failed to parse data: %v", err))
 	}
 	zlog.S.Debugf("Parsed data2: %v", data)
+	return data, nil
+}
+
+func ExportComponentSearchInput(input ComponentSearchInput) ([]byte, error) {
+	data, err := json.Marshal(input)
+	if err != nil {
+		zlog.S.Errorf("Parse failure: %v", err)
+		return nil, errors.New("failed to produce JSON ")
+	}
 	return data, nil
 }

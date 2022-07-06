@@ -21,8 +21,7 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	"scanoss.com/components/pkg/dtos/dtoGetComponentVersion"
-	"scanoss.com/components/pkg/dtos/dtoSearchComponent"
+	"scanoss.com/components/pkg/dtos"
 	zlog "scanoss.com/components/pkg/logger"
 	"scanoss.com/components/pkg/models"
 	"testing"
@@ -57,7 +56,7 @@ func TestSearchComponentsUseCase(t *testing.T) {
 		"package": "github"
 	}
 	`
-	requestDto, err := dtoSearchComponent.ParseComponentInput([]byte(compRequestData))
+	requestDto, err := dtos.ParseComponentSearchInput([]byte(compRequestData))
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when parsing input json", err)
 	}
@@ -97,7 +96,7 @@ func TestGetComponentVersionsUseCase(t *testing.T) {
 	}
 	`
 	compUc := NewComponents(ctx, db)
-	requestDto, err := dtoGetComponentVersion.ParseComponentVersionsInput([]byte(compVersionRequestData))
+	requestDto, err := dtos.ParseComponentVersionsInput([]byte(compVersionRequestData))
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when parsing input json", err)
 	}

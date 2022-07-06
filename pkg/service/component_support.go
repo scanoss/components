@@ -4,26 +4,25 @@ import (
 	"encoding/json"
 	"errors"
 	pb "github.com/scanoss/papi/api/componentsv2"
-	"scanoss.com/components/pkg/dtos/dtoGetComponentVersion"
-	"scanoss.com/components/pkg/dtos/dtoSearchComponent"
+	"scanoss.com/components/pkg/dtos"
 	zlog "scanoss.com/components/pkg/logger"
 )
 
-func convertSearchComponentInput(request *pb.CompSearchRequest) (dtoSearchComponent.ComponentSearchInput, error) {
+func convertSearchComponentInput(request *pb.CompSearchRequest) (dtos.ComponentSearchInput, error) {
 	data, err := json.Marshal(request)
 	if err != nil {
 		zlog.S.Errorf("Problem marshalling component request input: %v", err)
-		return dtoSearchComponent.ComponentSearchInput{}, errors.New("problem marshalling component input")
+		return dtos.ComponentSearchInput{}, errors.New("problem marshalling component input")
 	}
-	dtoRequest, err := dtoSearchComponent.ParseComponentInput(data)
+	dtoRequest, err := dtos.ParseComponentSearchInput(data)
 	if err != nil {
 		zlog.S.Errorf("Problem parsing component request input: %v", err)
-		return dtoSearchComponent.ComponentSearchInput{}, errors.New("problem parsing component input")
+		return dtos.ComponentSearchInput{}, errors.New("problem parsing component input")
 	}
 	return dtoRequest, nil
 }
 
-func convertSearchComponentOutput(output dtoSearchComponent.ComponentsSearchOutput) (*pb.CompSearchResponse, error) {
+func convertSearchComponentOutput(output dtos.ComponentsSearchOutput) (*pb.CompSearchResponse, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
 		zlog.S.Errorf("Problem marshalling component request output: %v", err)
@@ -39,21 +38,21 @@ func convertSearchComponentOutput(output dtoSearchComponent.ComponentsSearchOutp
 	return &compResp, nil
 }
 
-func convertCompVersionsInput(request *pb.CompVersionRequest) (dtoGetComponentVersion.ComponentVersionsInput, error) {
+func convertCompVersionsInput(request *pb.CompVersionRequest) (dtos.ComponentVersionsInput, error) {
 	data, err := json.Marshal(request)
 	if err != nil {
 		zlog.S.Errorf("Problem marshalling component request input: %v", err)
-		return dtoGetComponentVersion.ComponentVersionsInput{}, errors.New("problem marshalling component version request input")
+		return dtos.ComponentVersionsInput{}, errors.New("problem marshalling component version request input")
 	}
-	dtoRequest, err := dtoGetComponentVersion.ParseComponentVersionsInput(data)
+	dtoRequest, err := dtos.ParseComponentVersionsInput(data)
 	if err != nil {
 		zlog.S.Errorf("Problem parsing component request input: %v", err)
-		return dtoGetComponentVersion.ComponentVersionsInput{}, errors.New("problem parsing component version input")
+		return dtos.ComponentVersionsInput{}, errors.New("problem parsing component version input")
 	}
 	return dtoRequest, nil
 }
 
-func convertCompVersionsOutput(output dtoGetComponentVersion.ComponentVersionsOutput) (*pb.CompVersionResponse, error) {
+func convertCompVersionsOutput(output dtos.ComponentVersionsOutput) (*pb.CompVersionResponse, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
 		zlog.S.Errorf("Problem marshalling component request output: %v", err)

@@ -1,12 +1,13 @@
-package dtoGetComponentVersion
+package dtos
 
 import (
+	"fmt"
 	"github.com/google/go-cmp/cmp"
 	zlog "scanoss.com/components/pkg/logger"
 	"testing"
 )
 
-func TestDependencyInput(t *testing.T) {
+func TestParseComponentVersionsInput(t *testing.T) {
 
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -48,10 +49,9 @@ func TestDependencyInput(t *testing.T) {
 	}
 
 	for _, test := range goodTest {
-		if res, err := ParseComponentVersionsInput([]byte(test.input)); !cmp.Equal(test.want, res) || err != nil {
-			if err != nil {
-				t.Errorf("Error generating dto: %v\n. Wanted %v, Input: %v \n", err, test.want, test.input)
-			}
+		res, err := ParseComponentVersionsInput([]byte(test.input))
+		if (!cmp.Equal(test.want, res)) || (err != nil) {
+			t.Errorf("Error testing dto: %v\n. Wanted %v, Input: %v \n", err, test.want, test.input)
 		}
 	}
 
@@ -61,4 +61,31 @@ func TestDependencyInput(t *testing.T) {
 			t.Errorf("Expected an error for input: %v", test.input)
 		}
 	}
+
+	_, err = ParseComponentVersionsInput([]byte(""))
+	if err == nil {
+		t.Errorf("Expected an error for empty input")
+	}
+}
+
+func TestExportComponentVersionsInput(t *testing.T) {
+
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+
+	bytes, err := ExportComponentVersionsInput(ComponentVersionsInput{Purl: "pkg:npm/scanoss/scanoss.js"})
+	if err != nil {
+		t.Errorf("Failed to export component version input: %v\n", err)
+	}
+	fmt.Printf("Converting component version input json to bytes: %v\n", bytes)
+
+	bytes, err = ExportComponentVersionsInput(ComponentVersionsInput{})
+	if err != nil {
+		t.Errorf("Failed to export component version input: %v\n", err)
+	}
+	fmt.Printf("Converting empty component version input json to bytes: %v\n", bytes)
+
 }
