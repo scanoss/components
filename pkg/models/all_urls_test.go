@@ -66,6 +66,16 @@ func TestAllUrlsSearch(t *testing.T) {
 	}
 	fmt.Printf("No Urls: %+v\n", allUrls)
 
+	allUrls, err = allUrlsModel.GetUrlsByPurlNameType("", "none", -1)
+	if err == nil {
+		t.Errorf("An error was expected with empty purlName all_urls.GetUrlsByPurlName() error = %v", err)
+	}
+
+	allUrls, err = allUrlsModel.GetUrlsByPurlNameType("pkg:gem/tablestyle", "", -1)
+	if err == nil {
+		t.Errorf("An error was expected with empty purlType all_urls.GetUrlsByPurlName() error = %v", err)
+	}
+
 	allUrls, err = allUrlsModel.GetUrlsByPurlString("pkg:gem/tablestyle", -1)
 	if err != nil {
 		t.Errorf("all_urls.GetUrlsByPurlString() error = %v", err)
@@ -74,5 +84,15 @@ func TestAllUrlsSearch(t *testing.T) {
 		t.Errorf("all_urls.GetUrlsByPurlString() No URLs returned from query")
 	}
 	fmt.Printf("All Urls: %+v\n", allUrls)
+
+	allUrls, err = allUrlsModel.GetUrlsByPurlString("", -1)
+	if err == nil {
+		t.Errorf("An error was expected with empty purlString all_urls.GetUrlsByPurlString() error = %v", err)
+	}
+
+	allUrls, err = allUrlsModel.GetUrlsByPurlString("pkg::pypi", -1)
+	if err == nil {
+		t.Errorf("An error was expected with broken purlString all_urls.GetUrlsByPurlString() error = %v", err)
+	}
 
 }

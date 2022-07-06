@@ -99,20 +99,6 @@ func TestRunQueriesInParallel(t *testing.T) {
 	}
 	fmt.Printf("Result of running queries %v:\n%v\n ", queryJobs, res)
 
-	queryJobs = []QueryJob{
-		{
-			query: "SELECT id, name FROM mines LIMIT 1",
-		},
-		{
-			query: "SELECT purl_type FROM mines LIMIT $1",
-			args:  []any{3},
-		},
-	}
-	res1, err := RunQueriesInParallel[Mine](db, ctx, queryJobs)
-	if err != nil {
-		t.Errorf("Error running multiple queries %v", err)
-	}
-	fmt.Printf("Result of running queries %v:\n%v\n ", queryJobs, res1)
 }
 
 func TestRemoveDuplicates(t *testing.T) {

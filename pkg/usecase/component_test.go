@@ -27,7 +27,7 @@ import (
 	"testing"
 )
 
-func TestSearchComponentsUseCase(t *testing.T) {
+func TestComponentUseCase_SearchComponents(t *testing.T) {
 	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -38,37 +38,48 @@ func TestSearchComponentsUseCase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+	db.SetMaxOpenConns(1)
 	defer models.CloseDB(db)
-	conn, err := db.Connx(ctx) // Get a connection from the pool
+	conn, err := db.Connx(ctx) // Get a connection from the pool (with context)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+
 	err = models.LoadTestSqlData(db, ctx, conn)
 	if err != nil {
-		t.Fatalf("an error '%s' was not expected when loading test data", err)
+		t.Fatalf("failed to load SQL test data: %v", err)
 	}
 	models.CloseConn(conn)
-
 	compUc := NewComponents(ctx, db)
 
-	var compRequestData = `{
-		"component": "angular",
-		"package": "github"
+	goodTable := []dtos.ComponentSearchInput{
+		{
+			Search:  "angular",
+			Package: "github",
+		},
+		{
+			Component: "angular",
+		},
+		{
+			Vendor: "angular",
+		},
+		{
+			Component: "angular",
+			Vendor:    "angular",
+		},
 	}
-	`
-	requestDto, err := dtos.ParseComponentSearchInput([]byte(compRequestData))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when parsing input json", err)
+
+	for _, dtoCompSearchInput := range goodTable {
+		searchOut, err := compUc.SearchComponents(dtoCompSearchInput)
+		if err != nil {
+			t.Fatalf("an error '%s' was not expected when getting components", err)
+		}
+		fmt.Printf("Search response: %+v\n", searchOut)
 	}
-	components, err := compUc.SearchComponents(requestDto)
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when getting components", err)
-	}
-	fmt.Printf("Components response: %+v\n", components)
 
 }
 
-func TestGetComponentVersionsUseCase(t *testing.T) {
+func TestComponentUseCase_GetComponentVersions(t *testing.T) {
 	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -79,31 +90,55 @@ func TestGetComponentVersionsUseCase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+	db.SetMaxOpenConns(1)
 	defer models.CloseDB(db)
-	conn, err := db.Connx(ctx) // Get a connection from the pool
+	conn, err := db.Connx(ctx) // Get a connection from the pool (with context)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+
 	err = models.LoadTestSqlData(db, ctx, conn)
 	if err != nil {
-		t.Fatalf("an error '%s' was not expected when loading test data", err)
+		t.Fatalf("failed to load SQL test data: %v", err)
 	}
 	models.CloseConn(conn)
-
-	var compVersionRequestData = `{
-		"purl": "pkg:gem/tablestyle",
-		"limit": 10
-	}
-	`
 	compUc := NewComponents(ctx, db)
-	requestDto, err := dtos.ParseComponentVersionsInput([]byte(compVersionRequestData))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when parsing input json", err)
-	}
-	versions, err := compUc.GetComponentVersions(requestDto)
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when getting components", err)
-	}
-	fmt.Printf("Versions response: %+v\n", versions)
 
+	goodTable := []dtos.ComponentVersionsInput{
+		{
+			Purl:  "pkg:gem/tablestyle",
+			Limit: 0,
+		},
+		{
+			Purl:  "pkg:npm/%40angular/elements",
+			Limit: 2,
+		},
+	}
+
+	for _, dtoCompVersionInput := range goodTable {
+		versions, err := compUc.GetComponentVersions(dtoCompVersionInput)
+		if err != nil {
+			t.Fatalf("an error '%s' was not expected when getting components", err)
+		}
+		fmt.Printf("Versions response: %+v\n", versions)
+	}
+
+	failTestTable := []dtos.ComponentVersionsInput{
+		{
+			Purl:  "",
+			Limit: 0,
+		},
+		{
+			Purl:  "pkg::NOEXIST::/%40angular/elements",
+			Limit: 2,
+		},
+	}
+
+	for _, dtoCompVersionInput := range failTestTable {
+		_, err := compUc.GetComponentVersions(dtoCompVersionInput)
+		if err == nil {
+			t.Errorf("an error was expected when getting components version %v\n", err)
+		}
+
+	}
 }

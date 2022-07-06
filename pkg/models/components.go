@@ -23,9 +23,9 @@ import (
 	zlog "scanoss.com/components/pkg/logger"
 )
 
-var DEFAULT_PURL_TYPE = "github"
-var DEFAULT_MAX_VERSION_LIMIT = 50
-var DEFAULT_MAX_COMPONENT_LIMIT = 50
+var defaultPurlType = "github"
+var defaultMaxVersionLimit = 50
+var defaultMaxComponentLimit = 50
 
 type ComponentModel struct {
 	ctx context.Context
@@ -50,8 +50,8 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		return nil, errors.New("please specify a valid component Name to query")
 	}
 
-	if limit > DEFAULT_MAX_COMPONENT_LIMIT || limit <= 0 {
-		limit = DEFAULT_MAX_COMPONENT_LIMIT
+	if limit > defaultMaxComponentLimit || limit <= 0 {
+		limit = defaultMaxComponentLimit
 	}
 
 	if offset < 0 {
@@ -59,7 +59,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 	}
 
 	if len(purlType) == 0 {
-		purlType = DEFAULT_PURL_TYPE
+		purlType = defaultPurlType
 	}
 
 	queryJobs := []QueryJob{
@@ -141,8 +141,8 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
 
-	if limit > DEFAULT_MAX_COMPONENT_LIMIT || limit <= 0 {
-		limit = DEFAULT_MAX_COMPONENT_LIMIT
+	if limit > defaultMaxComponentLimit || limit <= 0 {
+		limit = defaultMaxComponentLimit
 	}
 
 	if offset < 0 {
@@ -150,7 +150,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 	}
 
 	if len(purlType) == 0 {
-		purlType = DEFAULT_PURL_TYPE
+		purlType = defaultPurlType
 	}
 
 	queryJobs := []QueryJob{
@@ -209,8 +209,8 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
 
-	if limit > DEFAULT_MAX_COMPONENT_LIMIT || limit <= 0 {
-		limit = DEFAULT_MAX_COMPONENT_LIMIT
+	if limit > defaultMaxComponentLimit || limit <= 0 {
+		limit = defaultMaxComponentLimit
 	}
 
 	if offset < 0 {
@@ -218,7 +218,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 	}
 
 	if len(purlType) == 0 {
-		purlType = DEFAULT_PURL_TYPE
+		purlType = defaultPurlType
 	}
 
 	queryJobs := []QueryJob{

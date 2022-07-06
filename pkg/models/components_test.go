@@ -19,14 +19,13 @@ package models
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	zlog "scanoss.com/components/pkg/logger"
 	"testing"
 )
 
-func TestComponentsSearch(t *testing.T) {
+func TestComponentsModel(t *testing.T) {
 	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -51,88 +50,71 @@ func TestComponentsSearch(t *testing.T) {
 	CloseConn(conn)
 
 	component := NewComponentModel(ctx, db)
-	var purlType = "npm"
-	var compName = "react"
-	fmt.Printf("Searching for components: Component Name:%v, PurlType: %v\n", compName, purlType)
-	components, err := component.GetComponentsByNameType(compName, purlType, -1, -1)
-	if err != nil {
-		t.Errorf("components.GetComponentsByNameType() error = %v", err)
-	}
-	if len(components) < 1 {
-		t.Errorf("components.GetComponentsByNameType() No components returned from query")
-	}
-	fmt.Printf("Components: %v\n", components)
 
-	purlType = "github"
-	compName = "angular"
-	fmt.Printf("Searching for components: Component Name:%v, PurlType: %v\n", compName, purlType)
-	components, err = component.GetComponentsByNameType(compName, purlType, 20, 0)
-	if err != nil {
-		t.Errorf("components.GetComponentsByNameType() error = %v", err)
-	}
-	fmt.Printf("Components: %v\n", components)
-
-	purlType = "github"
-	compName = "angular"
-	fmt.Printf("Searching for components by differents criteria: Component Name:%v, PurlType: %v\n", compName, purlType)
-	components, err = component.GetComponents(compName, purlType, 20, 0)
-	if err != nil {
-		t.Errorf("components.GetComponentsByNameType() error = %v", err)
-	}
-	fmt.Printf("Components: %v\n", components)
-}
-
-func TestRemoveDuplicated(t *testing.T) {
-
-	err := zlog.NewSugaredDevLogger()
-	if err != nil {
-		t.Errorf("an error '%s' was not expected when opening a sugared logger", err)
-	}
-	compEmpty := Component{}
-
-	compSemiComplete := Component{
-		Component: "hyx-decrypt",
-		PurlType:  "npm",
-		PurlName:  "hyx-decrypt",
-		Url:       "",
-	}
-
-	comp1 := Component{
-		Component: "scanner",
-		PurlType:  "npm",
-		PurlName:  "scanner",
-		Url:       "https://www.npmjs.com/package/scanner",
-	}
-
-	comp1Similar := Component{
-		Component: "scanner",
-		PurlType:  "npm",
-		PurlName:  "scanner",
-		Url:       "www.npmjs.com/package/scanner",
-	}
-
-	comp2 := Component{
-		Component: "graph",
-		PurlType:  "npm",
-		PurlName:  "graph",
-		Url:       "https://www.npmjs.com/package/graph",
-	}
-
-	testTable := []struct {
-		input []Component
-		want  []Component
+	passTestTable := []struct {
+		SearchParam string
+		PurlType    string
+		Limit       int
+		Offset      int
 	}{
-		{input: []Component{comp1, comp1, comp1, comp1}, want: []Component{comp1}},
-		{input: []Component{comp1, compEmpty, comp1, compSemiComplete}, want: []Component{comp1, compEmpty, compSemiComplete}},
-		{input: []Component{compEmpty, compEmpty}, want: []Component{compEmpty}},
-		{input: []Component{comp1, compEmpty, comp2}, want: []Component{comp1, compEmpty, comp2}},
-		{input: []Component{comp1, comp1Similar}, want: []Component{comp1, comp1Similar}},
+		{
+			SearchParam: "angular",
+		},
+		{
+			SearchParam: "angular",
+			Limit:       100,
+		},
+		{
+			SearchParam: "angular",
+			PurlType:    "",
+			Limit:       -10,
+			Offset:      -10,
+		},
 	}
 
-	for _, test := range testTable {
-		if result := RemoveDuplicated[Component](test.input); !cmp.Equal(result, test.want) {
-			diff := cmp.Diff(result, test.want)
-			t.Fatalf("Expected %v and got %v\n Differences: %v", result, test.want, diff)
+	for _, test := range passTestTable {
+		fmt.Printf("Searching:%v, PurlType: %v, Limit: %v, Offset: %v\n",
+			test.SearchParam,
+			test.PurlType,
+			test.Limit,
+			test.Offset)
+
+		components, err := component.GetComponents(test.SearchParam, test.PurlType, test.Limit, test.Offset)
+		if err != nil {
+			t.Errorf("components.GetComponents() error = %v", err)
 		}
+		fmt.Printf("Components: %v\n", components)
+
+		components, err = component.GetComponentsByNameType(test.SearchParam, test.PurlType, test.Limit, test.Offset)
+		if err != nil {
+			t.Errorf("components.GetComponentsByNameType() error = %v", err)
+		}
+		fmt.Printf("Components: %v\n", components)
+
+		components, err = component.GetComponentsByVendorType(test.SearchParam, test.PurlType, test.Limit, test.Offset)
+		if err != nil {
+			t.Errorf("components.GetComponentsByVendorType() error = %v", err)
+		}
+		fmt.Printf("Components: %v\n", components)
+	}
+
+	_, err = component.GetComponents("", "", 0, 0)
+	if err == nil {
+		t.Errorf("An error was expected")
+	}
+
+	_, err = component.GetComponentsByNameType("", "", 0, 0)
+	if err == nil {
+		t.Errorf("An error was expected")
+	}
+
+	_, err = component.GetComponentsByNameType("", "", 0, 0)
+	if err == nil {
+		t.Errorf("An error was expected")
+	}
+
+	_, err = component.GetComponentsByVendorType("", "", 0, 0)
+	if err == nil {
+		t.Errorf("An error was expected")
 	}
 }

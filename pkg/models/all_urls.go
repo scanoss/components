@@ -71,8 +71,8 @@ func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit in
 		return nil, errors.New("please specify a valid Purl Type to query")
 	}
 
-	if limit > DEFAULT_MAX_VERSION_LIMIT || limit <= 0 {
-		limit = DEFAULT_MAX_VERSION_LIMIT
+	if limit > defaultMaxVersionLimit || limit <= 0 {
+		limit = defaultMaxVersionLimit
 	}
 
 	var allUrls []AllUrl

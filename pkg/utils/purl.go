@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"github.com/package-url/packageurl-go"
 	"regexp"
-	zlog "scanoss.com/components/pkg/logger"
 	"strings"
 )
 
@@ -75,18 +74,6 @@ func ConvertPurlString(purlString string) string { // TODO remove now that we ha
 		return s
 	}
 	return purlString
-}
-
-func GetVersionFromReq(purlReq string) string {
-	matches := vRegex.FindStringSubmatch(purlReq)
-	if matches != nil && len(matches) > 0 {
-		ni := vRegex.SubexpIndex("name")
-		if ni >= 0 {
-			zlog.S.Debugf("Changing requirement %v to Version %v", purlReq, matches[ni])
-			return matches[ni]
-		}
-	}
-	return ""
 }
 
 // ProjectUrl returns a browsable URL for the given purl type and name
