@@ -42,7 +42,7 @@ func (d componentServer) Echo(ctx context.Context, request *common.EchoRequest) 
 	return &common.EchoResponse{Message: request.GetMessage()}, nil
 }
 
-// Search and retrieves a list of components
+// SearchComponents and retrieves a list of components
 func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
 	zlog.S.Infof("Processing component request: %v", request)
 

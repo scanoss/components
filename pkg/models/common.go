@@ -82,16 +82,6 @@ func CloseConn(conn *sqlx.Conn) {
 	}
 }
 
-func CloseRows(rows *sqlx.Rows) {
-	if rows != nil {
-		zlog.S.Debugf("Closing Rows...")
-		err := rows.Close()
-		if err != nil {
-			zlog.S.Warnf("Problem closing Rows: %v", err)
-		}
-	}
-}
-
 type QueryJob struct {
 	query string
 	args  []any

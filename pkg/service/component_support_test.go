@@ -24,6 +24,7 @@ func TestConvertSearchComponentInput(t *testing.T) {
 		t.Errorf("Error generating dto from protobuff request: %v\n", err)
 	}
 	fmt.Printf("dto component input: %v\n", dto)
+
 }
 
 func TestConvertSearchComponentOutput(t *testing.T) {

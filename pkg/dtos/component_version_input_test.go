@@ -66,6 +66,11 @@ func TestParseComponentVersionsInput(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error for empty input")
 	}
+
+	_, err = ParseComponentVersionsInput(nil)
+	if err == nil {
+		t.Errorf("Expected an error for empty input")
+	}
 }
 
 func TestExportComponentVersionsInput(t *testing.T) {

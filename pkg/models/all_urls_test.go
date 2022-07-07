@@ -66,7 +66,7 @@ func TestAllUrlsSearch(t *testing.T) {
 	}
 	fmt.Printf("No Urls: %+v\n", allUrls)
 
-	allUrls, err = allUrlsModel.GetUrlsByPurlNameType("", "none", -1)
+	allUrls, err = allUrlsModel.GetUrlsByPurlNameType("", "", 0)
 	if err == nil {
 		t.Errorf("An error was expected with empty purlName all_urls.GetUrlsByPurlName() error = %v", err)
 	}
