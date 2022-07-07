@@ -95,7 +95,7 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 		return dtos.ComponentVersionsOutput{}, err
 	}
 
-	projectURL, err := utils.ProjectUrl(request.Purl, purl.Type)
+	projectURL, err := utils.ProjectUrl(purl.Name, purl.Type)
 	if err != nil {
 		zlog.S.Errorf("Problem generating the project: %v - %v.", request.Purl, err)
 		return dtos.ComponentVersionsOutput{}, err

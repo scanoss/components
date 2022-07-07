@@ -44,8 +44,13 @@ func (d componentServer) Echo(ctx context.Context, request *common.EchoRequest) 
 
 // SearchComponents and retrieves a list of components
 func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
-	zlog.S.Infof("Processing component request: %v", request)
 
+	if len(request.Search) == 0 && len(request.Component) == 0 && len(request.Vendor) == 0 {
+		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "There is no data to retrieve components"}
+		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("there is no data to retrieve components")
+	}
+
+	zlog.S.Infof("Processing component request: %v", request)
 	dtoRequest, err := convertSearchComponentInput(request) // Convert to internal DTO for processing
 	if err != nil {
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing component input data"}

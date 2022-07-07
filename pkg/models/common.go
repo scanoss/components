@@ -83,8 +83,8 @@ func CloseConn(conn *sqlx.Conn) {
 }
 
 type QueryJob struct {
-	query string
-	args  []any
+	Query string
+	Args  []any
 }
 
 type job struct {
@@ -125,8 +125,8 @@ func RunQueriesInParallel[T any](db *sqlx.DB, ctx context.Context, queryJobs []Q
 	for i, queryJob := range queryJobs {
 		jobChan <- job{
 			jobId: i,
-			query: queryJob.query,
-			args:  queryJob.args,
+			query: queryJob.Query,
+			args:  queryJob.Args,
 		}
 	}
 	close(jobChan)

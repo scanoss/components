@@ -86,11 +86,11 @@ func TestRunQueriesInParallel(t *testing.T) {
 
 	queryJobs := []QueryJob{
 		{
-			query: "SELECT component, purl_name, m.purl_type FROM projects p " +
+			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
 				" WHERE p.component LIKE $1" +
 				" LIMIT $2",
-			args: []any{"%angular%", 2},
+			Args: []any{"%angular%", 2},
 		},
 	}
 	res, err := RunQueriesInParallel[Component](db, ctx, queryJobs)

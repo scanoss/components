@@ -19,6 +19,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	zlog "scanoss.com/components/pkg/logger"
@@ -96,6 +97,13 @@ func TestComponentsModel(t *testing.T) {
 			t.Errorf("components.GetComponentsByVendorType() error = %v", err)
 		}
 		fmt.Printf("Components: %v\n", components)
+
+		components, err = component.GetComponentsByNameVendorType(test.SearchParam, test.SearchParam, test.PurlType, test.Limit, test.Offset)
+		if err != nil {
+			t.Errorf("components.GetComponentsByVendorType() error = %v", err)
+		}
+		fmt.Printf("Components: %v\n", components)
+
 	}
 
 	_, err = component.GetComponents("", "", 0, 0)
@@ -108,13 +116,85 @@ func TestComponentsModel(t *testing.T) {
 		t.Errorf("An error was expected")
 	}
 
-	_, err = component.GetComponentsByNameType("", "", 0, 0)
+	_, err = component.GetComponentsByVendorType("", "", 0, 0)
 	if err == nil {
 		t.Errorf("An error was expected")
 	}
 
-	_, err = component.GetComponentsByVendorType("", "", 0, 0)
+	_, err = component.GetComponentsByNameVendorType("", "", "", 0, 0)
 	if err == nil {
 		t.Errorf("An error was expected")
+	}
+}
+
+func TestPreProcessQueryJobs(t *testing.T) {
+
+	testTable := []struct {
+		qList    []QueryJob
+		purlType string
+		limit    int
+		wanted   []QueryJob
+	}{
+		{
+			qList: []QueryJob{
+				{
+					Query: "SELECT * project #ORDER LIMIT $1",
+					Args:  []any{0},
+				},
+				{
+					Query: "SELECT * project #ORDER LIMIT $1",
+					Args:  []any{0},
+				},
+			},
+			purlType: "github",
+			limit:    1,
+			wanted: []QueryJob{
+				{
+					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_watchers DESC NULLS LAST LIMIT $1",
+					Args:  []any{1},
+				},
+				{
+					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_watchers DESC NULLS LAST LIMIT $1",
+					Args:  []any{1},
+				},
+			},
+		},
+		{
+			qList: []QueryJob{{
+				Query: "SELECT * FROM project #ORDER",
+			}},
+			purlType: "NOEXISTENT",
+			limit:    10,
+			wanted: []QueryJob{
+				{
+					Query: "SELECT * FROM project",
+				},
+			},
+		},
+		{
+			qList: []QueryJob{
+				{Query: "SELECT * FROM project"},
+			},
+			purlType: "github",
+			limit:    0,
+			wanted: []QueryJob{
+				{Query: "SELECT * FROM project"},
+			},
+		},
+	}
+
+	for _, testInput := range testTable {
+		q, err := preProsessQueryJob(testInput.qList, testInput.purlType, testInput.limit)
+		if err != nil {
+			t.Errorf("Error produced when pre processing QueryJobs: %v\n", err)
+		}
+		if !cmp.Equal(q, testInput.wanted) {
+			t.Errorf(" unexpected output for preProcessQueryJob()\nWanted: %v\n, Got:%v\n", testInput.wanted, q)
+		}
+	}
+
+	_, err := preProsessQueryJob([]QueryJob{}, "", 0)
+	if err == nil {
+		t.Errorf("An error was expected with empty parameters \n")
 	}
 }
