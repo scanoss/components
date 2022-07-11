@@ -120,7 +120,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component = $1" +
+				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4;",
@@ -129,7 +129,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type FROM projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor = $1" +
+				" WHERE p.vendor ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4;",
@@ -138,7 +138,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name like $1" +
+				" WHERE p.purl_name ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -147,8 +147,8 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name like $1" +
-				" AND p.purl_name NOT LIKE $2" +
+				" WHERE p.purl_name ILIKE $1" +
+				" AND p.purl_name NOT ILIKE $2" +
 				" AND m.purl_type = $3" +
 				" #ORDER " +
 				" LIMIT $4 OFFSET $5",
@@ -157,7 +157,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name like $1" +
+				" WHERE p.purl_name ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER " +
 				" LIMIT $3 OFFSET $4",
@@ -166,7 +166,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name like $1" +
+				" WHERE p.purl_name LIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -206,7 +206,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component LIKE $1" +
+				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -215,7 +215,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component LIKE $1" +
+				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -224,7 +224,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component LIKE $1" +
+				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -233,7 +233,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component LIKE $1" +
+				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -273,7 +273,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor LIKE $1" +
+				" WHERE p.vendor = $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -282,7 +282,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor LIKE $1" +
+				" WHERE p.vendor ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -291,7 +291,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor LIKE $1" +
+				" WHERE p.vendor ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -300,7 +300,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor LIKE $1" +
+				" WHERE p.vendor ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -341,7 +341,7 @@ func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlTyp
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor LIKE $1 AND p.component LIKE $2" +
+				" WHERE p.vendor ILIKE $1 AND p.component ILIKE $2" +
 				" AND m.purl_type = $3" +
 				" #ORDER" +
 				" LIMIT $4 OFFSET $5",
@@ -350,7 +350,7 @@ func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlTyp
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor LIKE $1 AND p.component LIKE $2" +
+				" WHERE p.vendor ILIKE $1 AND p.component ILIKE $2" +
 				" AND m.purl_type = $3" +
 				" #ORDER" +
 				" LIMIT $4 OFFSET $5",
