@@ -150,11 +150,11 @@ func TestPreProcessQueryJobs(t *testing.T) {
 			limit:    1,
 			wanted: []QueryJob{
 				{
-					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_watchers DESC NULLS LAST LIMIT $1",
+					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST LIMIT $1",
 					Args:  []any{1},
 				},
 				{
-					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_watchers DESC NULLS LAST LIMIT $1",
+					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST LIMIT $1",
 					Args:  []any{1},
 				},
 			},

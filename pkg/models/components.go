@@ -58,7 +58,7 @@ func preProsessQueryJob(qListIn []QueryJob, purlType string, limit int) ([]Query
 	copy(qList, qListIn)
 	// order by git_created_at NULLS LAST, git_forks DESC NULLS LAST , git_watchers DESC NULLS FIRST
 	mapPurlTypeToOrderByClause := map[string]string{
-		"github": "ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_watchers DESC NULLS LAST",
+		"github": "ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST",
 		"pypi":   "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
 		"npm":    "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
 		"gem":    "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
