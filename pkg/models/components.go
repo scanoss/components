@@ -26,7 +26,6 @@ import (
 	"strings"
 )
 
-var defaultPurlType = "github"
 var defaultMaxVersionLimit = 50
 var defaultMaxComponentLimit = 50
 
@@ -37,6 +36,7 @@ type ComponentModel struct {
 
 type Component struct {
 	Component string `db:"component"`
+	Purl      string `db:"purl"`
 	PurlType  string `db:"purl_type"`
 	PurlName  string `db:"purl_name"`
 	Url       string `db:"-"`
@@ -58,10 +58,10 @@ func preProsessQueryJob(qListIn []QueryJob, purlType string, limit int) ([]Query
 	copy(qList, qListIn)
 	// order by git_created_at NULLS LAST, git_forks DESC NULLS LAST , git_watchers DESC NULLS FIRST
 	mapPurlTypeToOrderByClause := map[string]string{
-		"github": "ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST",
-		"pypi":   "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
-		"npm":    "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
-		"gem":    "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
+		"github": "ORDER BY first_version_date NULLS LAST ",
+		"pypi":   "ORDER BY first_version_date NULLS LAST ",
+		"npm":    "ORDER BY first_version_date NULLS LAST ",
+		"gem":    "ORDER BY first_version_date NULLS LAST ",
 	}
 
 	limitPerQuery := limit / len(qList)
@@ -104,6 +104,11 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		return nil, errors.New("please specify a valid component Name to query")
 	}
 
+	if len(purlType) == 0 {
+		zlog.S.Error("Please specify a valid Purl Type Name to query")
+		return nil, errors.New("Please specify a valid Purl Type Name to query")
+	}
+
 	if limit > defaultMaxComponentLimit || limit <= 0 {
 		limit = defaultMaxComponentLimit
 	}
@@ -112,65 +117,61 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		offset = 0
 	}
 
-	if len(purlType) == 0 {
-		purlType = defaultPurlType
-	}
-
 	queryJobs := []QueryJob{
-		{
-			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
+		{ //Search by exact component name
+			Query: "SELECT p.component, pu.purl from projects p" +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
 				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4;",
 			Args: []any{search, purlType, 1, offset},
 		},
-		{
-			Query: "SELECT p.component, p.purl_name, m.purl_type FROM projects p" +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1" +
+		{ //Search by exact vendor name
+			Query: "SELECT p.component, pu.purl from projects p" +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
+				" LEFT JOIN vendors v on p.vendor_id = v.id" +
+				" WHERE v.company ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4;",
 			Args: []any{search, purlType, 1, offset},
 		},
-		{
-			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name ILIKE $1" +
-				" AND m.purl_type = $2" +
+		{ // Search for components with pkg:${purl_type}*search*search*
+			Query: "SELECT p.component, pu.purl from projects p" +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" WHERE pu.purl ILIKE $1" +
 				" #ORDER" +
-				" LIMIT $3 OFFSET $4",
-			Args: []any{"%" + search + "%" + search + "%", purlType, 1, offset},
+				" LIMIT $2 OFFSET $3",
+			Args: []any{"pkg:" + purlType + "%" + search + "%" + search + "%", 1, offset},
 		},
-		{
-			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name ILIKE $1" +
-				" AND p.purl_name NOT ILIKE $2" +
-				" AND m.purl_type = $3" +
-				" #ORDER " +
-				" LIMIT $4 OFFSET $5",
-			Args: []any{"%" + search + "%", "%" + search + "%" + search + "%", purlType, 1, offset},
-		},
-		{
-			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name ILIKE $1" +
-				" AND m.purl_type = $2" +
+		{ //Search for a purl that contains the search term but not twice (*search*search*)
+			Query: "SELECT p.component, pu.purl from projects p" +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" WHERE pu.purl ILIKE $1" +
+				" AND pu.purl NOT ILIKE $2" +
 				" #ORDER " +
 				" LIMIT $3 OFFSET $4",
-			Args: []any{search + "%", purlType, 1, offset},
+			Args: []any{"pkg:" + purlType + "%" + search + "%",
+				"pkg:" + purlType + "%" + search + "%" + search + "%", 1, offset},
 		},
-		{
-			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name LIKE $1" +
-				" AND m.purl_type = $2" +
+		{ //Purls that starts with the search term
+			Query: "SELECT p.component, pu.purl from projects p" +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" WHERE pu.purl ILIKE $1" +
+				" #ORDER " +
+				" LIMIT $2 OFFSET $3",
+			Args: []any{"pkg:" + purlType + "/" + search + "%", 1, offset},
+		},
+		{ //Purls that ends with
+			Query: "SELECT p.component, pu.purl from projects p" +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" WHERE pu.purl ILIKE $1" +
 				" #ORDER" +
-				" LIMIT $3 OFFSET $4",
-			Args: []any{"%" + search, purlType, 1, offset},
+				" LIMIT $2 OFFSET $3",
+			Args: []any{"pkg:" + purlType + "%" + search, 1, offset},
 		},
 	}
 
@@ -179,7 +180,11 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
+	allComponents, err := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
+	if err != nil {
+		zlog.S.Error("Error running query: %v", err)
+	}
+
 	allComponents = RemoveDuplicated[Component](allComponents)
 	return allComponents, nil
 }
@@ -189,6 +194,10 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		zlog.S.Error("Please specify a valid Component Name to query")
 		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
+	if len(purlType) == 0 {
+		zlog.S.Error("Please specify a valid Purl Type Name to query")
+		return nil, errors.New("Please specify a valid Purl Type Name to query")
+	}
 
 	if limit > defaultMaxComponentLimit || limit <= 0 {
 		limit = defaultMaxComponentLimit
@@ -198,14 +207,11 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		offset = 0
 	}
 
-	if len(purlType) == 0 {
-		purlType = defaultPurlType
-	}
-
 	queryJobs := []QueryJob{
-		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
+		{ //Search by component name in project table
+			Query: " SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
 				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
@@ -213,8 +219,9 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 			Args: []any{compName, purlType, 1, offset},
 		},
 		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id " +
 				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
@@ -222,8 +229,9 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 			Args: []any{"%" + compName + "%", purlType, 1, offset},
 		},
 		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
 				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
@@ -231,8 +239,9 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 			Args: []any{compName + "%", purlType, 1, offset},
 		},
 		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
 				" WHERE p.component ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
@@ -257,6 +266,11 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
 
+	if len(purlType) == 0 {
+		zlog.S.Error("Please specify a valid Purl Type Name to query")
+		return nil, errors.New("Please specify a valid Purl Type Name to query")
+	}
+
 	if limit > defaultMaxComponentLimit || limit <= 0 {
 		limit = defaultMaxComponentLimit
 	}
@@ -265,42 +279,46 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		offset = 0
 	}
 
-	if len(purlType) == 0 {
-		purlType = defaultPurlType
-	}
-
 	queryJobs := []QueryJob{
-		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor = $1" +
+		{ //Exact vendor name
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN vendors v ON p.vendor_id = v.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
+				" WHERE v.company = $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
 			Args: []any{vendorName, purlType, 1, offset},
 		},
-		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1" +
+		{ // Contains vendor name
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN vendors v ON p.vendor_id = v.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
+				" WHERE v.company ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
 			Args: []any{"%" + vendorName + "%", purlType, 1, offset},
 		},
-		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1" +
+		{ //Start with vendor name
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN vendors v ON p.vendor_id = v.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
+				" WHERE v.company ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
 			Args: []any{vendorName + "%", purlType, 1, offset},
 		},
-		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1" +
+		{ //Ends with vendor name
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN vendors v ON p.vendor_id = v.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
+				" WHERE v.company ILIKE $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -325,6 +343,11 @@ func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlTyp
 		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
 
+	if len(purlType) == 0 {
+		zlog.S.Error("Please specify a valid Purl Type Name to query")
+		return nil, errors.New("Please specify a valid Purl Type Name to query")
+	}
+
 	if limit > defaultMaxComponentLimit || limit <= 0 {
 		limit = defaultMaxComponentLimit
 	}
@@ -333,24 +356,24 @@ func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlTyp
 		offset = 0
 	}
 
-	if len(purlType) == 0 {
-		purlType = defaultPurlType
-	}
-
 	queryJobs := []QueryJob{
 		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1 AND p.component ILIKE $2" +
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN vendors v ON p.vendor_id = v.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
+				" WHERE v.company ILIKE $1 AND p.component ILIKE $2" +
 				" AND m.purl_type = $3" +
 				" #ORDER" +
 				" LIMIT $4 OFFSET $5",
 			Args: []any{vendor, compName, purlType, 1, offset},
 		},
 		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1 AND p.component ILIKE $2" +
+			Query: "SELECT component, pu.purl FROM projects p " +
+				" LEFT JOIN purls pu ON p.purl_id = pu.id" +
+				" LEFT JOIN vendors v ON p.vendor_id = v.id" +
+				" LEFT JOIN mines m ON pu.mine_id = m.id" +
+				" WHERE v.company ILIKE $1 AND p.component ILIKE $2" +
 				" AND m.purl_type = $3" +
 				" #ORDER" +
 				" LIMIT $4 OFFSET $5",
