@@ -26,6 +26,8 @@ import (
 	"scanoss.com/components/pkg/utils"
 )
 
+var defaultPurlType = "github"
+
 type ComponentUseCase struct {
 	ctx        context.Context
 	db         *sqlx.DB
@@ -44,6 +46,10 @@ func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (d
 	var err error
 	var searchResults []models.Component
 
+	if len(request.Package) == 0 {
+		request.Package = defaultPurlType
+	}
+
 	if len(request.Search) != 0 {
 		searchResults, err = c.components.GetComponents(request.Search, request.Package, request.Limit, request.Offset)
 	} else if len(request.Component) != 0 && len(request.Vendor) == 0 {
@@ -59,7 +65,8 @@ func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (d
 	}
 
 	for i := range searchResults {
-		searchResults[i].Url, _ = utils.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
+		purlName, _ := utils.PurlNameFromString(searchResults[i].Purl)
+		searchResults[i].Url, _ = utils.ProjectUrl(purlName, request.Package)
 	}
 
 	var componentsSearchResults []dtos.ComponentSearchOutput
@@ -67,7 +74,7 @@ func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (d
 	for _, component := range searchResults {
 		var componentSearchResult dtos.ComponentSearchOutput
 		componentSearchResult.Component = component.Component
-		componentSearchResult.Purl = "pkg:" + component.PurlType + "/" + component.PurlName
+		componentSearchResult.Purl = component.Purl
 		componentSearchResult.Url = component.Url
 
 		componentsSearchResults = append(componentsSearchResults, componentSearchResult)
