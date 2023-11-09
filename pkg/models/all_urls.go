@@ -21,8 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	purl_helper "github.com/scanoss/go-purl-helper/pkg"
 	zlog "scanoss.com/components/pkg/logger"
-	"scanoss.com/components/pkg/utils"
 )
 
 type AllUrlsModel struct {
@@ -50,11 +50,11 @@ func (m *AllUrlsModel) GetUrlsByPurlString(purlString string, limit int) ([]AllU
 		zlog.S.Errorf("Please specify a valid Purl String to query")
 		return nil, errors.New("please specify a valid Purl String to query")
 	}
-	purl, err := utils.PurlFromString(purlString)
+	purl, err := purl_helper.PurlFromString(purlString)
 	if err != nil {
 		return nil, err
 	}
-	purlName, err := utils.PurlNameFromString(purlString) // Make sure we just have the bare minimum for a Purl Name
+	purlName, err := purl_helper.PurlNameFromString(purlString) // Make sure we just have the bare minimum for a Purl Name
 	if err != nil {
 		return nil, err
 	}

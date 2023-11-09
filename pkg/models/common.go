@@ -113,7 +113,7 @@ func workerQuery[T any](db *sqlx.DB, ctx context.Context, jobs chan job, results
 	}
 }
 
-func RunQueriesInParallel[T any](db *sqlx.DB, ctx context.Context, queryJobs []QueryJob) ([]T, error) {
+func RunQueries[T any](db *sqlx.DB, ctx context.Context, queryJobs []QueryJob) ([]T, error) {
 	numJobs := len(queryJobs)
 	jobChan := make(chan job, numJobs)
 	resultChan := make(chan result[T], numJobs)

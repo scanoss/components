@@ -20,10 +20,10 @@ import (
 	"context"
 	"errors"
 	"github.com/jmoiron/sqlx"
+	purl_helper "github.com/scanoss/go-purl-helper/pkg"
 	"scanoss.com/components/pkg/dtos"
 	zlog "scanoss.com/components/pkg/logger"
 	"scanoss.com/components/pkg/models"
-	"scanoss.com/components/pkg/utils"
 )
 
 type ComponentUseCase struct {
@@ -59,7 +59,7 @@ func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (d
 	}
 
 	for i := range searchResults {
-		searchResults[i].Url, _ = utils.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
+		searchResults[i].Url, _ = purl_helper.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
 	}
 
 	var componentsSearchResults []dtos.ComponentSearchOutput
@@ -89,16 +89,14 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 		return dtos.ComponentVersionsOutput{}, err
 	}
 
-	purl, err := utils.PurlFromString(request.Purl)
+	purl, err := purl_helper.PurlFromString(request.Purl)
 	if err != nil {
-		zlog.S.Errorf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
-		return dtos.ComponentVersionsOutput{}, err
+		zlog.S.Warnf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
 	}
 
-	projectURL, err := utils.ProjectUrl(purl.Name, purl.Type)
+	projectURL, err := purl_helper.ProjectUrl(purl.Name, purl.Type)
 	if err != nil {
-		zlog.S.Errorf("Problem generating the project: %v - %v.", request.Purl, err)
-		return dtos.ComponentVersionsOutput{}, err
+		zlog.S.Warnf("Problem generating the project URL: %v - %v.", request.Purl, err)
 	}
 
 	var output dtos.ComponentOutput

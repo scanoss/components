@@ -132,7 +132,6 @@ func TestPreProcessQueryJobs(t *testing.T) {
 	testTable := []struct {
 		qList    []QueryJob
 		purlType string
-		limit    int
 		wanted   []QueryJob
 	}{
 		{
@@ -147,15 +146,14 @@ func TestPreProcessQueryJobs(t *testing.T) {
 				},
 			},
 			purlType: "github",
-			limit:    1,
 			wanted: []QueryJob{
 				{
 					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST LIMIT $1",
-					Args:  []any{1},
+					Args:  []any{0},
 				},
 				{
 					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST LIMIT $1",
-					Args:  []any{1},
+					Args:  []any{0},
 				},
 			},
 		},
@@ -164,7 +162,6 @@ func TestPreProcessQueryJobs(t *testing.T) {
 				Query: "SELECT * FROM project #ORDER",
 			}},
 			purlType: "NOEXISTENT",
-			limit:    10,
 			wanted: []QueryJob{
 				{
 					Query: "SELECT * FROM project",
@@ -176,7 +173,6 @@ func TestPreProcessQueryJobs(t *testing.T) {
 				{Query: "SELECT * FROM project"},
 			},
 			purlType: "github",
-			limit:    0,
 			wanted: []QueryJob{
 				{Query: "SELECT * FROM project"},
 			},
@@ -184,7 +180,7 @@ func TestPreProcessQueryJobs(t *testing.T) {
 	}
 
 	for _, testInput := range testTable {
-		q, err := preProsessQueryJob(testInput.qList, testInput.purlType, testInput.limit)
+		q, err := preProcessQueryJob(testInput.qList, testInput.purlType)
 		if err != nil {
 			t.Errorf("Error produced when pre processing QueryJobs: %v\n", err)
 		}
@@ -193,7 +189,7 @@ func TestPreProcessQueryJobs(t *testing.T) {
 		}
 	}
 
-	_, err := preProsessQueryJob([]QueryJob{}, "", 0)
+	_, err := preProcessQueryJob([]QueryJob{}, "")
 	if err == nil {
 		t.Errorf("An error was expected with empty parameters \n")
 	}
