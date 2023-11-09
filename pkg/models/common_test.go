@@ -93,7 +93,7 @@ func TestRunQueriesInParallel(t *testing.T) {
 			Args: []any{"%angular%", 2},
 		},
 	}
-	res, err := RunQueriesInParallel[Component](db, ctx, queryJobs)
+	res, err := RunQueries[Component](db, ctx, queryJobs)
 	if err != nil {
 		t.Errorf("Error running multiple queries %v", err)
 	}

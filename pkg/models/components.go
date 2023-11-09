@@ -20,9 +20,7 @@ import (
 	"context"
 	"errors"
 	"github.com/jmoiron/sqlx"
-	"regexp"
 	zlog "scanoss.com/components/pkg/logger"
-	"strconv"
 	"strings"
 )
 
@@ -46,11 +44,10 @@ func NewComponentModel(ctx context.Context, db *sqlx.DB) *ComponentModel {
 	return &ComponentModel{ctx: ctx, db: db}
 }
 
-// preProsessQueryJob Replace the clause #ORDER in the queries (if exist) according to the purlType
-// and also adjust the limit per query to the value limit/len(queries)
-func preProsessQueryJob(qListIn []QueryJob, purlType string, limit int) ([]QueryJob, error) {
+// preProcessQueryJob Replace the clause #ORDER in the queries (if exist) according to the purlType
+func preProcessQueryJob(qListIn []QueryJob, purlType string) ([]QueryJob, error) {
 
-	if len(qListIn) == 0 || limit < 0 {
+	if len(qListIn) == 0 {
 		return []QueryJob{}, errors.New("Cannot pre process query jobs empty or with limit less than 0")
 	}
 
@@ -58,40 +55,16 @@ func preProsessQueryJob(qListIn []QueryJob, purlType string, limit int) ([]Query
 	copy(qList, qListIn)
 	// order by git_created_at NULLS LAST, git_forks DESC NULLS LAST , git_watchers DESC NULLS FIRST
 	mapPurlTypeToOrderByClause := map[string]string{
-		"github": "ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_watchers DESC NULLS LAST",
+		"github": "ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST",
 		"pypi":   "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
 		"npm":    "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
 		"gem":    "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
-	}
-
-	limitPerQuery := limit / len(qList)
-	if limitPerQuery == 0 {
-		limitPerQuery = 1
-	}
-
-	reLimit, err := regexp.Compile("LIMIT\\s*\\$(\\d)")
-	if err != nil {
-		return []QueryJob{}, err
 	}
 
 	for i, _ := range qList {
 		//Adds or remove the ORDER BY clause in SQL query
 		qList[i].Query = strings.Replace(qList[i].Query, "#ORDER", mapPurlTypeToOrderByClause[purlType], 1)
 		qList[i].Query = strings.TrimRight(qList[i].Query, " ")
-
-		// Extract the arg position for LIMIT statement in the SQL query
-		// Then update the value of the limit with limitPerQuery
-		positionOfLimitString := reLimit.FindStringSubmatch(qList[i].Query)
-		if len(positionOfLimitString) >= 1 {
-			positionOfLimit, err := strconv.Atoi(positionOfLimitString[1])
-			if err != nil {
-				// Cannot update limit value
-				zlog.S.Error("Unable to extract the position of the LIMIT argument and update the limit argument in SQL query")
-				continue
-			}
-			qList[i].Args[positionOfLimit-1] = limitPerQuery
-		}
-
 	}
 
 	return qList, nil
@@ -124,7 +97,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4;",
-			Args: []any{search, purlType, 1, offset},
+			Args: []any{search, purlType, limit, offset},
 		},
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type FROM projects p" +
@@ -133,7 +106,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4;",
-			Args: []any{search, purlType, 1, offset},
+			Args: []any{search, purlType, limit, offset},
 		},
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
@@ -174,13 +147,18 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		},
 	}
 
-	queryJobs, err := preProsessQueryJob(queryJobs, purlType, limit)
+	queryJobs, err := preProcessQueryJob(queryJobs, purlType)
 	if err != nil {
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
+	allComponents, _ := RunQueries[Component](m.db, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
+
+	if limit < len(allComponents) {
+		allComponents = allComponents[:limit]
+	}
+
 	return allComponents, nil
 }
 
@@ -241,13 +219,18 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		},
 	}
 
-	queryJobs, err := preProsessQueryJob(queryJobs, purlType, limit)
+	queryJobs, err := preProcessQueryJob(queryJobs, purlType)
 	if err != nil {
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
+	allComponents, _ := RunQueries[Component](m.db, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
+
+	if limit < len(allComponents) {
+		allComponents = allComponents[:limit]
+	}
+
 	return allComponents, nil
 }
 
@@ -308,13 +291,18 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		},
 	}
 
-	queryJobs, err := preProsessQueryJob(queryJobs, purlType, limit)
+	queryJobs, err := preProcessQueryJob(queryJobs, purlType)
 	if err != nil {
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
+	allComponents, _ := RunQueries[Component](m.db, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
+
+	if limit < len(allComponents) {
+		allComponents = allComponents[:limit]
+	}
+
 	return allComponents, nil
 }
 
@@ -358,12 +346,17 @@ func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlTyp
 		},
 	}
 
-	queryJobs, err := preProsessQueryJob(queryJobs, purlType, limit)
+	queryJobs, err := preProcessQueryJob(queryJobs, purlType)
 	if err != nil {
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueriesInParallel[Component](m.db, m.ctx, queryJobs)
+	allComponents, _ := RunQueries[Component](m.db, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
+
+	if limit < len(allComponents) {
+		allComponents = allComponents[:limit]
+	}
+
 	return allComponents, nil
 }
