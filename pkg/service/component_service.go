@@ -20,93 +20,118 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
+	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	common "github.com/scanoss/papi/api/commonv2"
 	pb "github.com/scanoss/papi/api/componentsv2"
-	zlog "scanoss.com/components/pkg/logger"
+	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/usecase"
+	"time"
 )
 
 type componentServer struct {
 	pb.ComponentsServer
-	db *sqlx.DB
+	db     *sqlx.DB
+	config *myconfig.ServerConfig
 }
 
-func NewComponentServer(db *sqlx.DB) pb.ComponentsServer {
-	return &componentServer{db: db}
+func NewComponentServer(db *sqlx.DB, config *myconfig.ServerConfig) pb.ComponentsServer {
+	setupMetrics()
+	return &componentServer{db: db, config: config}
 }
 
 // Echo sends back the same message received
 func (d componentServer) Echo(ctx context.Context, request *common.EchoRequest) (*common.EchoResponse, error) {
-	zlog.S.Infof("Received (%v): %v", ctx, request.GetMessage())
+	s := ctxzap.Extract(ctx).Sugar()
+	s.Infof("Received (%v): %v", ctx, request.GetMessage())
 	return &common.EchoResponse{Message: request.GetMessage()}, nil
 }
 
 // SearchComponents and retrieves a list of components
 func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
-
+	requestStartTime := time.Now() // Capture the scan start time
+	s := ctxzap.Extract(ctx).Sugar()
+	s.Info("Processing component name request...")
 	if len(request.Search) == 0 && len(request.Component) == 0 && len(request.Vendor) == 0 {
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "There is no data to retrieve components"}
 		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("there is no data to retrieve components")
 	}
-
-	zlog.S.Infof("Processing component request: %v", request)
-	dtoRequest, err := convertSearchComponentInput(request) // Convert to internal DTO for processing
+	dtoRequest, err := convertSearchComponentInput(s, request) // Convert to internal DTO for processing
 	if err != nil {
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing component input data"}
 		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("problem parsing component input data")
 	}
 
 	// Search the KB for information about the components
-	compUc := usecase.NewComponents(ctx, d.db)
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace))
 	dtoComponents, err := compUc.SearchComponents(dtoRequest)
 	if err != nil {
-		zlog.S.Errorf("Failed to get components: %v", err)
+		s.Errorf("Failed to get components: %v", err)
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
 		return &pb.CompSearchResponse{Status: &statusResp}, nil
 	}
-	zlog.S.Debugf("Parsed Components: %+v", dtoComponents)
-	componentsResponse, err := convertSearchComponentOutput(dtoComponents) // Convert the internal data into a response object
+	s.Debugf("Parsed Components: %+v", dtoComponents)
+	componentsResponse, err := convertSearchComponentOutput(s, dtoComponents) // Convert the internal data into a response object
 	if err != nil {
-		zlog.S.Errorf("Failed to convert parsed components: %v", err)
+		s.Errorf("Failed to convert parsed components: %v", err)
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
 		return &pb.CompSearchResponse{Status: &statusResp}, nil
 	}
+	telemetryCompNameRequestTime(ctx, d.config, requestStartTime) // Record the request processing time
 	// Set the status and respond with the data
 	statusResp := common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success"}
 	return &pb.CompSearchResponse{Components: componentsResponse.Components, Status: &statusResp}, nil
 }
 
 func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.CompVersionRequest) (*pb.CompVersionResponse, error) {
+
+	requestStartTime := time.Now() // Capture the scan start time
+	s := ctxzap.Extract(ctx).Sugar()
+	s.Info("Processing component versions request...")
 	//Verify the input request
 	if len(request.Purl) == 0 {
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "There is no purl to retrieve component"}
 		return &pb.CompVersionResponse{Status: &statusResp}, errors.New("there is no purl to retrieve component")
 	}
-
 	//Convert the request to internal DTO
-	dtoRequest, err := convertCompVersionsInput(request)
+	dtoRequest, err := convertCompVersionsInput(s, request)
 	if err != nil {
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing component version input data"}
 		return &pb.CompVersionResponse{Status: &statusResp}, errors.New("problem parsing component version input data")
 	}
-
 	// Creates the use case
-	compUc := usecase.NewComponents(ctx, d.db)
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace))
 	dtoOutput, err := compUc.GetComponentVersions(dtoRequest)
-
 	if err != nil {
-		zlog.S.Errorf("Failed to get components: %v", err)
+		s.Errorf("Failed to get components: %v", err)
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
 		return &pb.CompVersionResponse{Status: &statusResp}, nil
 	}
-
-	reqResponse, err := convertCompVersionsOutput(dtoOutput)
+	reqResponse, err := convertCompVersionsOutput(s, dtoOutput)
 	if err != nil {
-		zlog.S.Errorf("Failed to convert parsed components: %v", err)
+		s.Errorf("Failed to convert parsed components: %v", err)
 		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
 		return &pb.CompVersionResponse{Status: &statusResp}, nil
 	}
+	telemetryCompVersionRequestTime(ctx, d.config, requestStartTime)
+	// Set the status and respond with the data
 	statusResp := common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success"}
 	return &pb.CompVersionResponse{Component: reqResponse.Component, Status: &statusResp}, nil
+}
+
+// telemetryCompNameRequestTime records the name request time to telemetry.
+func telemetryCompNameRequestTime(ctx context.Context, config *myconfig.ServerConfig, requestStartTime time.Time) {
+	if config.Telemetry.Enabled {
+		elapsedTime := time.Since(requestStartTime).Milliseconds() // Time taken to run the component name request
+		oltpMetrics.compNameHistogram.Record(ctx, elapsedTime)     // Record dep request time
+	}
+}
+
+// telemetryCompNameRequestTime records the versions request time to telemetry.
+func telemetryCompVersionRequestTime(ctx context.Context, config *myconfig.ServerConfig, requestStartTime time.Time) {
+	if config.Telemetry.Enabled {
+		elapsedTime := time.Since(requestStartTime).Milliseconds() // Time taken to run the component version request
+		oltpMetrics.compVersionHistogram.Record(ctx, elapsedTime)  // Record dep request time
+	}
 }

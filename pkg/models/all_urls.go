@@ -20,14 +20,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	purl_helper "github.com/scanoss/go-purl-helper/pkg"
-	zlog "scanoss.com/components/pkg/logger"
+	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
+	purlhelper "github.com/scanoss/go-purl-helper/pkg"
+	"go.uber.org/zap"
 )
 
 type AllUrlsModel struct {
 	ctx context.Context
-	db  *sqlx.DB
+	s   *zap.SugaredLogger
+	q   *database.DBQueryContext
 }
 
 type AllUrl struct {
@@ -41,20 +42,20 @@ type AllUrl struct {
 	Url       string `db:"-"`
 }
 
-func NewAllUrlModel(ctx context.Context, db *sqlx.DB) *AllUrlsModel {
-	return &AllUrlsModel{ctx: ctx, db: db}
+func NewAllUrlModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext) *AllUrlsModel {
+	return &AllUrlsModel{ctx: ctx, s: s, q: q}
 }
 
 func (m *AllUrlsModel) GetUrlsByPurlString(purlString string, limit int) ([]AllUrl, error) {
 	if len(purlString) == 0 {
-		zlog.S.Errorf("Please specify a valid Purl String to query")
+		m.s.Errorf("Please specify a valid Purl String to query")
 		return nil, errors.New("please specify a valid Purl String to query")
 	}
-	purl, err := purl_helper.PurlFromString(purlString)
+	purl, err := purlhelper.PurlFromString(purlString)
 	if err != nil {
 		return nil, err
 	}
-	purlName, err := purl_helper.PurlNameFromString(purlString) // Make sure we just have the bare minimum for a Purl Name
+	purlName, err := purlhelper.PurlNameFromString(purlString) // Make sure we just have the bare minimum for a Purl Name
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +64,11 @@ func (m *AllUrlsModel) GetUrlsByPurlString(purlString string, limit int) ([]AllU
 
 func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit int) ([]AllUrl, error) {
 	if len(purlName) == 0 {
-		zlog.S.Errorf("Please specify a valid Purl Name to query")
+		m.s.Errorf("Please specify a valid Purl Name to query")
 		return nil, errors.New("please specify a valid Purl Name to query")
 	}
 	if len(purlType) == 0 {
-		zlog.S.Errorf("Please specify a valid Purl Type to query: %v", purlName)
+		m.s.Errorf("Please specify a valid Purl Type to query: %v", purlName)
 		return nil, errors.New("please specify a valid Purl Type to query")
 	}
 
@@ -76,7 +77,7 @@ func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit in
 	}
 
 	var allUrls []AllUrl
-	err := m.db.SelectContext(m.ctx, &allUrls,
+	err := m.q.SelectContext(m.ctx, &allUrls,
 		"SELECT component, version,"+
 			" l.license_name AS license, l.spdx_id AS license_id, l.is_spdx AS is_spdx,"+
 			" purl_name, mine_id FROM all_urls u"+
@@ -87,9 +88,9 @@ func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit in
 		purlType, purlName, limit)
 
 	if err != nil {
-		zlog.S.Errorf("Failed to query all urls table for %v - %v: %v", purlType, purlName, err)
+		m.s.Errorf("Failed to query all urls table for %v - %v: %v", purlType, purlName, err)
 		return nil, fmt.Errorf("failed to query the all urls table: %v", err)
 	}
-	zlog.S.Debugf("Found %v results for %v, %v.", len(allUrls), purlType, purlName)
+	m.s.Debugf("Found %v results for %v, %v.", len(allUrls), purlType, purlName)
 	return allUrls, nil
 }

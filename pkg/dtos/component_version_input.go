@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	zlog "scanoss.com/components/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type ComponentVersionsInput struct {
@@ -12,25 +12,24 @@ type ComponentVersionsInput struct {
 	Limit int    `json:"limit"`
 }
 
-func ExportComponentVersionsInput(output ComponentVersionsInput) ([]byte, error) {
+func ExportComponentVersionsInput(s *zap.SugaredLogger, output ComponentVersionsInput) ([]byte, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
-		zlog.S.Errorf("Parse failure: %v", err)
+		s.Errorf("Parse failure: %v", err)
 		return nil, errors.New("failed to produce JSON ")
 	}
 	return data, nil
 }
 
-func ParseComponentVersionsInput(input []byte) (ComponentVersionsInput, error) {
-	if input == nil || len(input) == 0 {
+func ParseComponentVersionsInput(s *zap.SugaredLogger, input []byte) (ComponentVersionsInput, error) {
+	if len(input) == 0 {
 		return ComponentVersionsInput{}, errors.New("no data supplied to parse")
 	}
 	var data ComponentVersionsInput
 	err := json.Unmarshal(input, &data)
 	if err != nil {
-		zlog.S.Errorf("Parse failure: %v", err)
-		return ComponentVersionsInput{}, errors.New(fmt.Sprintf("failed to parse data: %v", err))
+		s.Errorf("Parse failure: %v", err)
+		return ComponentVersionsInput{}, fmt.Errorf("failed to parse data: %v", err)
 	}
-	zlog.S.Debugf("Parsed data: %v", data)
 	return data, nil
 }

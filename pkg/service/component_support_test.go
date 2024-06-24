@@ -1,10 +1,12 @@
 package service
 
 import (
+	"context"
 	"fmt"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	pb "github.com/scanoss/papi/api/componentsv2"
+	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	"scanoss.com/components/pkg/dtos"
-	zlog "scanoss.com/components/pkg/logger"
 	"testing"
 )
 
@@ -14,12 +16,14 @@ func TestConvertSearchComponentInput(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := ctxzap.ToContext(context.Background(), zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
 
 	compSearchRequest := new(pb.CompSearchRequest)
 	compSearchRequest.Search = "angular"
 	compSearchRequest.Package = "github"
 
-	dto, err := convertSearchComponentInput(compSearchRequest)
+	dto, err := convertSearchComponentInput(s, compSearchRequest)
 	if err != nil {
 		t.Errorf("Error generating dto from protobuff request: %v\n", err)
 	}
@@ -33,6 +37,8 @@ func TestConvertSearchComponentOutput(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := ctxzap.ToContext(context.Background(), zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
 
 	dtoOut := dtos.ComponentsSearchOutput{Components: []dtos.ComponentSearchOutput{
 		{
@@ -42,7 +48,7 @@ func TestConvertSearchComponentOutput(t *testing.T) {
 		},
 	}}
 
-	protobuffSearchOut, err := convertSearchComponentOutput(dtoOut)
+	protobuffSearchOut, err := convertSearchComponentOutput(s, dtoOut)
 	if err != nil {
 		t.Errorf("An error ocurred when convertin dto to protobuf %v\n", err)
 	}
@@ -55,11 +61,13 @@ func TestConvertCompVersionsInput(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := ctxzap.ToContext(context.Background(), zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
 
 	compVersionRequest := new(pb.CompVersionRequest)
 	compVersionRequest.Purl = "angular"
 
-	dto, err := convertCompVersionsInput(compVersionRequest)
+	dto, err := convertCompVersionsInput(s, compVersionRequest)
 	if err != nil {
 		t.Errorf("Error generating dto from protobuff request: %v\n", err)
 	}
@@ -72,6 +80,8 @@ func TestConvertCompVersionsOutput(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := ctxzap.ToContext(context.Background(), zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
 
 	dtoVersionOut := dtos.ComponentVersionsOutput{
 		Component: dtos.ComponentOutput{
@@ -93,7 +103,7 @@ func TestConvertCompVersionsOutput(t *testing.T) {
 		},
 	}
 
-	protobuffOut, err := convertCompVersionsOutput(dtoVersionOut)
+	protobuffOut, err := convertCompVersionsOutput(s, dtoVersionOut)
 	if err != nil {
 		t.Errorf("Error converting dto to protobuff request: %v\n", err)
 	}

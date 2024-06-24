@@ -19,18 +19,21 @@ package models
 import (
 	"context"
 	"errors"
-	"github.com/jmoiron/sqlx"
-	zlog "scanoss.com/components/pkg/logger"
+	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
+	"go.uber.org/zap"
 	"strings"
 )
 
 var defaultPurlType = "github"
 var defaultMaxVersionLimit = 50
 var defaultMaxComponentLimit = 50
+var defaultLikeValue = "LIKE"
 
 type ComponentModel struct {
-	ctx context.Context
-	db  *sqlx.DB
+	ctx          context.Context
+	s            *zap.SugaredLogger
+	q            *database.DBQueryContext
+	likeOperator string
 }
 
 type Component struct {
@@ -40,15 +43,18 @@ type Component struct {
 	Url       string `db:"-"`
 }
 
-func NewComponentModel(ctx context.Context, db *sqlx.DB) *ComponentModel {
-	return &ComponentModel{ctx: ctx, db: db}
+func NewComponentModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext, likeOperator string) *ComponentModel {
+	if len(likeOperator) == 0 {
+		likeOperator = defaultLikeValue
+	}
+	return &ComponentModel{ctx: ctx, s: s, q: q, likeOperator: likeOperator}
 }
 
 // preProcessQueryJob Replace the clause #ORDER in the queries (if exist) according to the purlType
 func preProcessQueryJob(qListIn []QueryJob, purlType string) ([]QueryJob, error) {
 
 	if len(qListIn) == 0 {
-		return []QueryJob{}, errors.New("Cannot pre process query jobs empty or with limit less than 0")
+		return []QueryJob{}, errors.New("cannot pre process query jobs empty or with limit less than 0")
 	}
 
 	qList := make([]QueryJob, len(qListIn))
@@ -61,7 +67,7 @@ func preProcessQueryJob(qListIn []QueryJob, purlType string) ([]QueryJob, error)
 		"gem":    "ORDER BY first_version_date NULLS LAST, versions NULLS LAST",
 	}
 
-	for i, _ := range qList {
+	for i := range qList {
 		//Adds or remove the ORDER BY clause in SQL query
 		qList[i].Query = strings.Replace(qList[i].Query, "#ORDER", mapPurlTypeToOrderByClause[purlType], 1)
 		qList[i].Query = strings.TrimRight(qList[i].Query, " ")
@@ -71,20 +77,17 @@ func preProcessQueryJob(qListIn []QueryJob, purlType string) ([]QueryJob, error)
 }
 
 func (m *ComponentModel) GetComponents(search, purlType string, limit, offset int) ([]Component, error) {
-	zlog.S.Infof("search parameter: %v", search)
+	m.s.Infof("search parameter: %v", search)
 	if len(search) == 0 {
-		zlog.S.Error("Please specify a valid Component Name to query")
+		m.s.Error("Please specify a valid Component Name to query")
 		return nil, errors.New("please specify a valid component Name to query")
 	}
-
 	if limit > defaultMaxComponentLimit || limit <= 0 {
 		limit = defaultMaxComponentLimit
 	}
-
 	if offset < 0 {
 		offset = 0
 	}
-
 	if len(purlType) == 0 {
 		purlType = defaultPurlType
 	}
@@ -93,7 +96,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component ILIKE $1" +
+				" WHERE p.component " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4;",
@@ -102,7 +105,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type FROM projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1" +
+				" WHERE p.vendor " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4;",
@@ -111,7 +114,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name ILIKE $1" +
+				" WHERE p.purl_name " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -120,8 +123,8 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name ILIKE $1" +
-				" AND p.purl_name NOT ILIKE $2" +
+				" WHERE p.purl_name " + m.likeOperator + " $1" +
+				" AND p.purl_name NOT " + m.likeOperator + " $2" +
 				" AND m.purl_type = $3" +
 				" #ORDER " +
 				" LIMIT $4 OFFSET $5",
@@ -130,7 +133,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		{
 			Query: "SELECT p.component, p.purl_name, m.purl_type from projects p" +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.purl_name ILIKE $1" +
+				" WHERE p.purl_name " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER " +
 				" LIMIT $3 OFFSET $4",
@@ -152,7 +155,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueries[Component](m.db, m.ctx, queryJobs)
+	allComponents, _ := RunQueries[Component](m.q, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
 
 	if limit < len(allComponents) {
@@ -164,7 +167,7 @@ func (m *ComponentModel) GetComponents(search, purlType string, limit, offset in
 
 func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limit, offset int) ([]Component, error) {
 	if len(compName) == 0 {
-		zlog.S.Error("Please specify a valid Component Name to query")
+		m.s.Error("Please specify a valid Component Name to query")
 		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
 
@@ -184,7 +187,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component ILIKE $1" +
+				" WHERE p.component " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -193,7 +196,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component ILIKE $1" +
+				" WHERE p.component " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -202,7 +205,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component ILIKE $1" +
+				" WHERE p.component " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -211,7 +214,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component ILIKE $1" +
+				" WHERE p.component " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -224,7 +227,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueries[Component](m.db, m.ctx, queryJobs)
+	allComponents, _ := RunQueries[Component](m.q, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
 
 	if limit < len(allComponents) {
@@ -236,7 +239,7 @@ func (m *ComponentModel) GetComponentsByNameType(compName, purlType string, limi
 
 func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, limit, offset int) ([]Component, error) {
 	if len(vendorName) == 0 {
-		zlog.S.Error("Please specify a valid Component Name to query")
+		m.s.Error("Please specify a valid Component Name to query")
 		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
 
@@ -265,7 +268,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1" +
+				" WHERE p.vendor " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -274,7 +277,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1" +
+				" WHERE p.vendor " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -283,7 +286,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1" +
+				" WHERE p.vendor " + m.likeOperator + " $1" +
 				" AND m.purl_type = $2" +
 				" #ORDER" +
 				" LIMIT $3 OFFSET $4",
@@ -296,7 +299,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueries[Component](m.db, m.ctx, queryJobs)
+	allComponents, _ := RunQueries[Component](m.q, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
 
 	if limit < len(allComponents) {
@@ -309,7 +312,7 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlType string, limit, offset int) ([]Component, error) {
 
 	if len(compName) == 0 || len(vendor) == 0 {
-		zlog.S.Error("Please specify a valid Component Name to query")
+		m.s.Error("Please specify a valid Component Name to query")
 		return []Component{}, errors.New("please specify a valid component Name to query")
 	}
 
@@ -329,7 +332,7 @@ func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlTyp
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1 AND p.component ILIKE $2" +
+				" WHERE p.vendor " + m.likeOperator + " $1 AND p.component " + m.likeOperator + " $2" +
 				" AND m.purl_type = $3" +
 				" #ORDER" +
 				" LIMIT $4 OFFSET $5",
@@ -338,7 +341,7 @@ func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlTyp
 		{
 			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
 				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.vendor ILIKE $1 AND p.component ILIKE $2" +
+				" WHERE p.vendor " + m.likeOperator + " $1 AND p.component " + m.likeOperator + " $2" +
 				" AND m.purl_type = $3" +
 				" #ORDER" +
 				" LIMIT $4 OFFSET $5",
@@ -351,7 +354,7 @@ func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlTyp
 		return []Component{}, err
 	}
 
-	allComponents, _ := RunQueries[Component](m.db, m.ctx, queryJobs)
+	allComponents, _ := RunQueries[Component](m.q, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
 
 	if limit < len(allComponents) {

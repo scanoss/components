@@ -19,38 +19,41 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
+	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
+	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/dtos"
-	zlog "scanoss.com/components/pkg/logger"
 	"scanoss.com/components/pkg/models"
 	"testing"
 )
 
 func TestComponentUseCase_SearchComponents(t *testing.T) {
-	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
 	db, err := sqlx.Connect("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
-	db.SetMaxOpenConns(1)
 	defer models.CloseDB(db)
-	conn, err := db.Connx(ctx) // Get a connection from the pool (with context)
+	err = models.LoadTestSQLData(db, nil, nil)
 	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+		t.Fatalf("an error '%s' was not expected when loading test data", err)
+	}
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
 	}
 
-	err = models.LoadTestSqlData(db, ctx, conn)
-	if err != nil {
-		t.Fatalf("failed to load SQL test data: %v", err)
-	}
-	models.CloseConn(conn)
-	compUc := NewComponents(ctx, db)
+	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace))
 
 	goodTable := []dtos.ComponentSearchInput{
 		{
@@ -80,29 +83,30 @@ func TestComponentUseCase_SearchComponents(t *testing.T) {
 }
 
 func TestComponentUseCase_GetComponentVersions(t *testing.T) {
-	ctx := context.Background()
+
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
 	db, err := sqlx.Connect("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
-	db.SetMaxOpenConns(1)
 	defer models.CloseDB(db)
-	conn, err := db.Connx(ctx) // Get a connection from the pool (with context)
+	err = models.LoadTestSQLData(db, nil, nil)
 	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+		t.Fatalf("an error '%s' was not expected when loading test data", err)
+	}
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
 	}
 
-	err = models.LoadTestSqlData(db, ctx, conn)
-	if err != nil {
-		t.Fatalf("failed to load SQL test data: %v", err)
-	}
-	models.CloseConn(conn)
-	compUc := NewComponents(ctx, db)
+	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace))
 
 	goodTable := []dtos.ComponentVersionsInput{
 		{

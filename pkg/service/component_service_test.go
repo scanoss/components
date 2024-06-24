@@ -19,29 +19,36 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	common "github.com/scanoss/papi/api/commonv2"
 	pb "github.com/scanoss/papi/api/componentsv2"
+	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	"reflect"
-	zlog "scanoss.com/components/pkg/logger"
+	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/models"
 	"testing"
 )
 
 func TestComponentServer_Echo(t *testing.T) {
-	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
 	db, err := sqlx.Connect("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer models.CloseDB(db)
-	s := NewComponentServer(db)
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	s := NewComponentServer(db, myConfig)
 
 	type args struct {
 		ctx context.Context
@@ -79,23 +86,27 @@ func TestComponentServer_Echo(t *testing.T) {
 }
 
 func TestComponentServer_SearchComponents(t *testing.T) {
-	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
 	db, err := sqlx.Connect("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer models.CloseDB(db)
-	db.SetMaxOpenConns(1)
-	err = models.LoadTestSqlData(db, nil, nil)
+	err = models.LoadTestSQLData(db, nil, nil)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	s := NewComponentServer(db)
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	s := NewComponentServer(db, myConfig)
 
 	var compRequestData = `{
   		"component": "angular",
@@ -120,7 +131,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Search for angular and purltype github without limit",
+			name: "Search for angular and purl type github without limit",
 			s:    s,
 			args: args{
 				ctx: ctx,
@@ -155,23 +166,27 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 }
 
 func TestComponentServer_GetComponentVersions(t *testing.T) {
-	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
 	db, err := sqlx.Connect("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer models.CloseDB(db)
-	db.SetMaxOpenConns(1)
-	err = models.LoadTestSqlData(db, nil, nil)
+	err = models.LoadTestSQLData(db, nil, nil)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	s := NewComponentServer(db)
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	s := NewComponentServer(db, myConfig)
 
 	var compVersionRequestData = `{
   		"purl": "pkg:npm/%40angular/elements"
@@ -195,7 +210,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Search for angular and purltype github without limit",
+			name: "Search for angular and purl type github without limit",
 			s:    s,
 			args: args{
 				ctx: ctx,
