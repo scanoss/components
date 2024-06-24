@@ -1,9 +1,11 @@
 package dtos
 
 import (
+	"context"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
-	zlog "scanoss.com/components/pkg/logger"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	"testing"
 )
 
@@ -13,6 +15,8 @@ func TestParseComponentVersionsOutput(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := ctxzap.ToContext(context.Background(), zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
 
 	goodTest := []struct {
 		input string
@@ -70,7 +74,7 @@ func TestParseComponentVersionsOutput(t *testing.T) {
 	}
 
 	for _, test := range goodTest {
-		res, err := ParseComponentVersionsOutput([]byte(test.input))
+		res, err := ParseComponentVersionsOutput(s, []byte(test.input))
 		if !cmp.Equal(test.want, res) || err != nil {
 			t.Errorf("Error generating dto: %v\n. Wanted %v\n, Got: %v \n", err, test.want, res)
 		}
@@ -78,12 +82,12 @@ func TestParseComponentVersionsOutput(t *testing.T) {
 
 	// All the test in this table are expected to fail
 	for _, test := range badTest {
-		if _, err := ParseComponentVersionsOutput([]byte(test.input)); err == nil {
+		if _, err := ParseComponentVersionsOutput(s, []byte(test.input)); err == nil {
 			t.Errorf("Expected an error for input: %v", test.input)
 		}
 	}
 
-	_, err = ParseComponentVersionsOutput([]byte(""))
+	_, err = ParseComponentVersionsOutput(s, []byte(""))
 	if err == nil {
 		t.Errorf("Expected an error for empty input")
 	}
@@ -96,6 +100,8 @@ func TestExportComponentVersionsOutput(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
+	ctx := ctxzap.ToContext(context.Background(), zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
 
 	fullComponent := ComponentVersionsOutput{Component: ComponentOutput{
 		Component: "@angular/elements",
@@ -125,13 +131,13 @@ func TestExportComponentVersionsOutput(t *testing.T) {
 		},
 	}}
 
-	data, err := ExportComponentVersionsOutput(fullComponent)
+	data, err := ExportComponentVersionsOutput(s, fullComponent)
 	if err != nil {
 		t.Errorf("dtos.ExportComponentVersionsOutput() error = %v", err)
 	}
 	fmt.Println("Exported output data: ", data)
 
-	data, err = ExportComponentVersionsOutput(ComponentVersionsOutput{})
+	data, err = ExportComponentVersionsOutput(s, ComponentVersionsOutput{})
 	if err != nil {
 		t.Errorf("dtos.ExportComponentVersionsOutput() error = %v", err)
 	}

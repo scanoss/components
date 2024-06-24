@@ -23,15 +23,27 @@ import (
 
 const (
 	defaultGrpcPort = "50053"
+	defaultRestPort = "40053"
 )
 
 // ServerConfig is configuration for Server
 type ServerConfig struct {
 	App struct {
-		Name  string `env:"APP_NAME"`
-		Port  string `env:"APP_PORT"`
-		Debug bool   `env:"APP_DEBUG"`
-		Mode  string `env:"APP_MODE"`
+		Name     string `env:"APP_NAME"`
+		GRPCPort string `env:"APP_PORT"`
+		RESTPort string `env:"REST_PORT"`
+		Debug    bool   `env:"APP_DEBUG"` // true/false
+		Trace    bool   `env:"APP_TRACE"` // true/false
+		Mode     string `env:"APP_MODE"`  // dev or prod
+	}
+	Logging struct {
+		DynamicLogging bool   `env:"LOG_DYNAMIC"`      // true/false
+		DynamicPort    string `env:"LOG_DYNAMIC_PORT"` // host:port
+		ConfigFile     string `env:"LOG_JSON_CONFIG"`
+	}
+	Telemetry struct {
+		Enabled      bool   `env:"OTEL_ENABLED"`       // true/false
+		OltpExporter string `env:"OTEL_EXPORTER_OLTP"` // OTEL OLTP exporter (default 0.0.0.0:4317)
 	}
 	Database struct {
 		Driver  string `env:"DB_DRIVER"`
@@ -39,8 +51,19 @@ type ServerConfig struct {
 		User    string `env:"DB_USER"`
 		Passwd  string `env:"DB_PASSWD"`
 		Schema  string `env:"DB_SCHEMA"`
-		SslMode string `env:"DB_SSL_MODE"`
+		SslMode string `env:"DB_SSL_MODE"` // enable/disable
 		Dsn     string `env:"DB_DSN"`
+		Trace   bool   `env:"DB_TRACE"` // true/false
+	}
+	TLS struct {
+		CertFile string `env:"COMP_TLS_CERT"` // TLS Certificate
+		KeyFile  string `env:"COMP_TLS_KEY"`  // Private TLS Key
+	}
+	Filtering struct {
+		AllowListFile  string `env:"COMP_ALLOW_LIST"`       // Allow list file for incoming connections
+		DenyListFile   string `env:"COMP_DENY_LIST"`        // Deny list file for incoming connections
+		BlockByDefault bool   `env:"COMP_BLOCK_BY_DEFAULT"` // Block request by default if they are not in the allow list
+		TrustProxy     bool   `env:"COMP_TRUST_PROXY"`      // Trust the interim proxy or not (causes the source IP to be validated instead of the proxy)
 	}
 }
 
@@ -64,7 +87,8 @@ func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
 // setServerConfigDefaults attempts to set reasonable defaults for the server config
 func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.App.Name = "SCANOSS Component Server"
-	cfg.App.Port = defaultGrpcPort
+	cfg.App.GRPCPort = defaultGrpcPort
+	cfg.App.RESTPort = defaultRestPort
 	cfg.App.Mode = "dev"
 	cfg.App.Debug = false
 	cfg.Database.Driver = "postgres"
@@ -72,4 +96,9 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.Database.User = "scanoss"
 	cfg.Database.Schema = "scanoss"
 	cfg.Database.SslMode = "disable"
+	cfg.Database.Trace = false
+	cfg.Logging.DynamicLogging = true
+	cfg.Logging.DynamicPort = "localhost:60053"
+	cfg.Telemetry.Enabled = false
+	cfg.Telemetry.OltpExporter = "0.0.0.0:4317" // Default OTEL OLTP gRPC Exporter endpoint
 }

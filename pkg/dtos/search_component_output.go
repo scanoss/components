@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	zlog "scanoss.com/components/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type ComponentsSearchOutput struct {
@@ -17,25 +17,24 @@ type ComponentSearchOutput struct {
 	Url       string `json:"url"`
 }
 
-func ExportComponentSearchOutput(output ComponentsSearchOutput) ([]byte, error) {
+func ExportComponentSearchOutput(s *zap.SugaredLogger, output ComponentsSearchOutput) ([]byte, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
-		zlog.S.Errorf("Parse failure: %v", err)
+		s.Errorf("Parse failure: %v", err)
 		return nil, errors.New("failed to produce JSON ")
 	}
 	return data, nil
 }
 
-func ParseComponentSearchOutput(input []byte) (ComponentsSearchOutput, error) {
-	if input == nil || len(input) == 0 {
+func ParseComponentSearchOutput(s *zap.SugaredLogger, input []byte) (ComponentsSearchOutput, error) {
+	if len(input) == 0 {
 		return ComponentsSearchOutput{}, errors.New("no data supplied to parse")
 	}
 	var data ComponentsSearchOutput
 	err := json.Unmarshal(input, &data)
 	if err != nil {
-		zlog.S.Errorf("Parse failure: %v", err)
-		return ComponentsSearchOutput{}, errors.New(fmt.Sprintf("failed to parse data: %v", err))
+		s.Errorf("Parse failure: %v", err)
+		return ComponentsSearchOutput{}, fmt.Errorf("failed to parse data: %v", err)
 	}
-	zlog.S.Debugf("Parsed data: %v", data)
 	return data, nil
 }

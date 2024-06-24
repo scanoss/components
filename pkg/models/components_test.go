@@ -20,37 +20,37 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
-	"github.com/jmoiron/sqlx"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	_ "github.com/mattn/go-sqlite3"
-	zlog "scanoss.com/components/pkg/logger"
+	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
+	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
+	myconfig "scanoss.com/components/pkg/config"
 	"testing"
 )
 
 func TestComponentsModel(t *testing.T) {
-	ctx := context.Background()
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer zlog.SyncZap()
-	db, err := sqlx.Connect("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	db.SetMaxOpenConns(1)
+	ctx := ctxzap.ToContext(context.Background(), zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
+	db := sqliteSetup(t) // Setup SQL Lite DB
 	defer CloseDB(db)
-	conn, err := db.Connx(ctx) // Get a connection from the pool (with context)
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-
-	err = LoadTestSqlData(db, ctx, conn)
+	conn := sqliteConn(t, ctx, db) // Get a connection from the pool
+	defer CloseConn(conn)
+	err = LoadTestSQLData(db, ctx, conn)
 	if err != nil {
 		t.Fatalf("failed to load SQL test data: %v", err)
 	}
-	CloseConn(conn)
-
-	component := NewComponentModel(ctx, db)
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	myConfig.Database.Trace = true
+	db.DriverName()
+	component := NewComponentModel(ctx, s, database.NewDBSelectContext(s, db, conn, myConfig.Database.Trace), database.GetLikeOperator(db))
 
 	passTestTable := []struct {
 		SearchParam string
@@ -161,7 +161,7 @@ func TestPreProcessQueryJobs(t *testing.T) {
 			qList: []QueryJob{{
 				Query: "SELECT * FROM project #ORDER",
 			}},
-			purlType: "NOEXISTENT",
+			purlType: "NONEXISTENT",
 			wanted: []QueryJob{
 				{
 					Query: "SELECT * FROM project",

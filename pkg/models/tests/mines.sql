@@ -1,3 +1,23 @@
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
+-- noinspection SpellCheckingInspectionForFile
+
 DROP TABLE IF EXISTS mines;
 CREATE TABLE mines (
                        id    INTEGER PRIMARY KEY,
