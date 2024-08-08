@@ -22,15 +22,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
+	_ "modernc.org/sqlite"
 	myconfig "scanoss.com/components/pkg/config"
 	"testing"
 )
 
 func TestDbLoad(t *testing.T) {
-	db, err := sqlx.Connect("sqlite3", ":memory:")
+	db, err := sqlx.Connect("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}

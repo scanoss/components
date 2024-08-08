@@ -21,10 +21,10 @@ import (
 	"encoding/json"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
 	common "github.com/scanoss/papi/api/commonv2"
 	pb "github.com/scanoss/papi/api/componentsv2"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
+	_ "modernc.org/sqlite"
 	"reflect"
 	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/models"
@@ -39,7 +39,7 @@ func TestComponentServer_Echo(t *testing.T) {
 	defer zlog.SyncZap()
 	ctx := context.Background()
 	ctx = ctxzap.ToContext(ctx, zlog.L)
-	db, err := sqlx.Connect("sqlite3", ":memory:")
+	db, err := sqlx.Connect("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
@@ -93,7 +93,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 	defer zlog.SyncZap()
 	ctx := context.Background()
 	ctx = ctxzap.ToContext(ctx, zlog.L)
-	db, err := sqlx.Connect("sqlite3", ":memory:")
+	db, err := sqlx.Connect("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
@@ -173,7 +173,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 	defer zlog.SyncZap()
 	ctx := context.Background()
 	ctx = ctxzap.ToContext(ctx, zlog.L)
-	db, err := sqlx.Connect("sqlite3", ":memory:")
+	db, err := sqlx.Connect("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}

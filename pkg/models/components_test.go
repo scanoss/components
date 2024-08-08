@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
+	_ "modernc.org/sqlite"
 	myconfig "scanoss.com/components/pkg/config"
 	"testing"
 )
