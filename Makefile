@@ -41,11 +41,11 @@ lint_local_fix: ## Run local instance of linting across the code base including 
 lint_docker: ## Run docker instance of linting across the code base
 	docker run --rm -v $(pwd):/app -v ~/.cache/golangci-lint/v1.50.1:/root/.cache -w /app golangci/golangci-lint:v1.50.1 golangci-lint run ./...
 
-run_local:  ## Launch the API locally using .env for test
+run_local:  ## Launch the API locally for test
 	@echo "Launching API locally..."
 	go run cmd/server/main.go -json-config config/app-config-dev.json -debug
 
-run_local_env:  ## Launch the API locally for test
+run_local_env:  ## Launch the API locally using .env for test
 	@echo "Launching API locally using .env ..."
 	go run cmd/server/main.go -env-config .env -debug
 

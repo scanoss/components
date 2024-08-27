@@ -26,7 +26,7 @@ import (
 	myconfig "scanoss.com/components/pkg/config"
 )
 
-// RunServer runs gRPC service to publish
+// RunServer runs gRPC service to publish.
 func RunServer(config *myconfig.ServerConfig, v2API pb.ComponentsServer, port string,
 	allowedIPs, deniedIPs []string, startTLS bool, version string) (*grpc.Server, error) {
 	// Start up Open Telemetry is requested
