@@ -619,8 +619,8 @@ github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFR
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU5NdKM8=
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
-github.com/scanoss/go-grpc-helper v0.6.0 h1:iswLBVsbPji4rkxQN2syd0afNWHI2p8s4Cucf4IO47g=
-github.com/scanoss/go-grpc-helper v0.6.0/go.mod h1:IYCUsaVOsKij7nwC7H1wB6QtWjkBSSsptnffW8m/xfE=
+github.com/scanoss/go-grpc-helper v0.7.0 h1:3lk8F6WwqAQqzXXuj9gtpI2NS3ktueFj1L+ea6gN7Ro=
+github.com/scanoss/go-grpc-helper v0.7.0/go.mod h1:IYCUsaVOsKij7nwC7H1wB6QtWjkBSSsptnffW8m/xfE=
 github.com/scanoss/go-purl-helper v0.2.1 h1:jp960a585ycyJSlqZky1NatMJBIQi/JGITDfNSu/9As=
 github.com/scanoss/go-purl-helper v0.2.1/go.mod h1:v20/bKD8G+vGrILdiq6r0hyRD2bO8frCJlu9drEcQ38=
 github.com/scanoss/ipfilter/v2 v2.0.2 h1:GaB9i8kVJg9JQZm5XGStYkEpiaCVdsrj7ezI2wV/oh8=
