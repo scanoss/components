@@ -8,7 +8,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
-	github.com/scanoss/go-grpc-helper v0.6.0
+	github.com/scanoss/go-grpc-helper v0.7.0
 	github.com/scanoss/go-purl-helper v0.2.1
 	github.com/scanoss/papi v0.2.0
 	github.com/scanoss/zap-logging-helper v0.3.2
