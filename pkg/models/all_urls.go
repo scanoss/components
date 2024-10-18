@@ -78,11 +78,12 @@ func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit in
 
 	var allUrls []AllUrl
 	err := m.q.SelectContext(m.ctx, &allUrls,
-		"SELECT component, version,"+
+		"SELECT component, v.version_name AS version,"+
 			" l.license_name AS license, l.spdx_id AS license_id, l.is_spdx AS is_spdx,"+
 			" purl_name, mine_id FROM all_urls u"+
 			" LEFT JOIN mines m ON u.mine_id = m.id"+
 			" LEFT JOIN licenses l ON u.license_id = l.id"+
+			" LEFT JOIN versions v ON u.version_id = v.id"+
 			" WHERE m.purl_type = $1 AND u.purl_name = $2"+
 			" ORDER BY date DESC NULLS LAST LIMIT $3",
 		purlType, purlName, limit)
