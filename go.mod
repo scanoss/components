@@ -12,8 +12,8 @@ require (
 	github.com/scanoss/go-purl-helper v0.2.1
 	github.com/scanoss/papi v0.2.0
 	github.com/scanoss/zap-logging-helper v0.3.2
-	go.opentelemetry.io/otel v1.28.0
-	go.opentelemetry.io/otel/metric v1.28.0
+	go.opentelemetry.io/otel v1.31.0
+	go.opentelemetry.io/otel/metric v1.31.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.65.0
 	modernc.org/sqlite v1.32.0
@@ -48,7 +48,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.28.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.28.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.28.0 // indirect
-	go.opentelemetry.io/otel/trace v1.28.0 // indirect
+	go.opentelemetry.io/otel/trace v1.31.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.28.0 // indirect
