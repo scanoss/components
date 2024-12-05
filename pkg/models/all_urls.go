@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	purlhelper "github.com/scanoss/go-purl-helper/pkg"
 	"go.uber.org/zap"
@@ -32,8 +33,8 @@ type AllUrlsModel struct {
 }
 
 type AllUrl struct {
-	Component string `db:"component"`
 	Version   string `db:"version"`
+	Component string `db:"component"`
 	License   string `db:"license"`
 	LicenseId string `db:"license_id"`
 	IsSpdx    bool   `db:"is_spdx"`
@@ -72,19 +73,44 @@ func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit in
 		return nil, errors.New("please specify a valid Purl Type to query")
 	}
 
-	if limit > defaultMaxVersionLimit || limit <= 0 {
+	if limit <= 0 {
 		limit = defaultMaxVersionLimit
 	}
 
 	var allUrls []AllUrl
 	err := m.q.SelectContext(m.ctx, &allUrls,
-		"SELECT component, version,"+
-			" l.license_name AS license, l.spdx_id AS license_id, l.is_spdx AS is_spdx,"+
-			" purl_name, mine_id FROM all_urls u"+
-			" LEFT JOIN mines m ON u.mine_id = m.id"+
-			" LEFT JOIN licenses l ON u.license_id = l.id"+
-			" WHERE m.purl_type = $1 AND u.purl_name = $2"+
-			" ORDER BY date DESC NULLS LAST LIMIT $3",
+		`
+			WITH ordered_urls AS (
+				SELECT 
+					version, 
+					component,
+					u.license_id,
+					purl_name, 
+					mine_id,
+					u.date
+				FROM 
+					all_urls u
+				LEFT JOIN 
+					mines m ON u.mine_id = m.id
+				WHERE 
+					m.purl_type = $1 AND u.purl_name = $2
+				ORDER BY 
+					u.date DESC NULLS LAST 
+				LIMIT 
+					$3
+			)
+			SELECT 
+				distinct(version), 
+				component,
+				l.license_name AS license,
+				l.spdx_id AS license_id, 
+				l.is_spdx AS is_spdx,
+				purl_name, 
+				mine_id
+			FROM 
+				ordered_urls
+			LEFT JOIN 
+				licenses l ON ordered_urls.license_id = l.id`,
 		purlType, purlName, limit)
 
 	if err != nil {
