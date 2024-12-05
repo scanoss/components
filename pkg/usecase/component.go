@@ -19,6 +19,8 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	purlhelper "github.com/scanoss/go-purl-helper/pkg"
@@ -90,7 +92,13 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 	if err != nil {
 		c.s.Warnf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
 	}
-	projectURL, err := purlhelper.ProjectUrl(purl.Name, purl.Type)
+
+	purlName := purl.Name
+	if purl.Type == "github" {
+		purlName = fmt.Sprintf("%s/%s", purl.Namespace, purl.Name)
+	}
+
+	projectURL, err := purlhelper.ProjectUrl(purlName, purl.Type)
 	if err != nil {
 		c.s.Warnf("Problem generating the project URL: %v - %v.", request.Purl, err)
 	}
