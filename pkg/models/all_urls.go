@@ -33,14 +33,15 @@ type AllUrlsModel struct {
 }
 
 type AllUrl struct {
-	Version   string `db:"version"`
-	Component string `db:"component"`
-	License   string `db:"license"`
-	LicenseId string `db:"license_id"`
-	IsSpdx    bool   `db:"is_spdx"`
-	PurlName  string `db:"purl_name"`
-	MineId    int32  `db:"mine_id"`
-	Url       string `db:"-"`
+	Version   string  `db:"version"`
+	Component string  `db:"component"`
+	License   string  `db:"license"`
+	LicenseId string  `db:"license_id"`
+	IsSpdx    bool    `db:"is_spdx"`
+	PurlName  string  `db:"purl_name"`
+	MineId    int32   `db:"mine_id"`
+	Date      *string `db:"date"`
+	Url       string  `db:"-"`
 }
 
 func NewAllUrlModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext) *AllUrlsModel {
@@ -80,37 +81,29 @@ func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit in
 	var allUrls []AllUrl
 	err := m.q.SelectContext(m.ctx, &allUrls,
 		`
-			WITH ordered_urls AS (
-				SELECT 
-					version, 
-					component,
-					u.license_id,
-					purl_name, 
-					mine_id,
-					u.date
-				FROM 
-					all_urls u
-				LEFT JOIN 
-					mines m ON u.mine_id = m.id
-				WHERE 
-					m.purl_type = $1 AND u.purl_name = $2
-				ORDER BY 
-					u.date DESC NULLS LAST 
-				LIMIT 
-					$3
-			)
-			SELECT 
-				distinct(version), 
+			SELECT
+				DISTINCT(VERSION),
 				component,
 				l.license_name AS license,
-				l.spdx_id AS license_id, 
+				l.spdx_id AS license_id,
 				l.is_spdx AS is_spdx,
-				purl_name, 
-				mine_id
-			FROM 
-				ordered_urls
+				purl_name,
+				mine_id,
+				u.date
+			FROM
+				all_urls u
 			LEFT JOIN 
-				licenses l ON ordered_urls.license_id = l.id`,
+				mines m ON u.mine_id = m.id
+			LEFT JOIN 
+				licenses l ON u.license_id = l.id
+			WHERE
+				m.purl_type = $1
+				AND u.purl_name = $2
+			order BY
+				date DESC NULLS LAST
+			LIMIT
+				$3
+			`,
 		purlType, purlName, limit)
 
 	if err != nil {
