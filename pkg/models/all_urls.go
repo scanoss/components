@@ -18,6 +18,7 @@ package models
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -33,15 +34,15 @@ type AllUrlsModel struct {
 }
 
 type AllUrl struct {
-	Version   string  `db:"version"`
-	Component string  `db:"component"`
-	License   string  `db:"license"`
-	LicenseId string  `db:"license_id"`
-	IsSpdx    bool    `db:"is_spdx"`
-	PurlName  string  `db:"purl_name"`
-	MineId    int32   `db:"mine_id"`
-	Date      *string `db:"date"`
-	Url       string  `db:"-"`
+	Version   string         `db:"version"`
+	Component string         `db:"component"`
+	License   string         `db:"license"`
+	LicenseId string         `db:"license_id"`
+	IsSpdx    bool           `db:"is_spdx"`
+	PurlName  string         `db:"purl_name"`
+	MineId    int32          `db:"mine_id"`
+	Date      sql.NullString `db:"date"`
+	Url       string         `db:"-"`
 }
 
 func NewAllUrlModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext) *AllUrlsModel {
