@@ -13,9 +13,18 @@
 if [ "$1" = "-h" ] || [ "$1" = "-help" ] ; then
   echo "$0 [-help] [environment]"
   echo "   Setup and copy the relevant files into place on a server to run the SCANOSS Components API"
+  echo "   [-f] force installation (skip all prompts)"
   echo "   [environment] allows the optional specification of a suffix to allow multiple services to be deployed at the same time (optional)"
   exit 1
 fi
+
+# Check if force flag is set
+FORCE_FLAG=false
+if [ "$1" = "-f" ]; then
+  FORCE_FLAG=true
+  shift # Shift arguments to handle environment correctly
+fi
+
 DEFAULT_ENV=""
 ENVIRONMENT="${1:-$DEFAULT_ENV}"
 
@@ -30,19 +39,26 @@ if ! getent passwd $RUNTIME_USER > /dev/null ; then
   echo "Please create using: useradd --system $RUNTIME_USER"
   exit 1
 fi
+
 # Also, make sure we're running as root
 if [ "$EUID" -ne 0 ] ; then
   echo "Please run as root"
   exit 1
 fi
-read -p "Install SCANOSS Components API $ENVIRONMENT (y/n) [n]? " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]] ; then
-  echo "Starting installation..."
+
+if [ "$FORCE_FLAG" = true ]; then
+  echo "Force flag set. Installing SCANOSS Components API $ENVIRONMENT without prompts..."
 else
-  echo "Stopping."
-  exit 1
+  read -p "Install SCANOSS Components API $ENVIRONMENT (y/n) [n]? " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]] ; then
+    echo "Starting installation..."
+  else
+    echo "Stopping."
+    exit 1
+  fi
 fi
+
 # Setup all the required folders and ownership
 echo "Setting up Components API system folders..."
 if ! mkdir -p $C_PATH ; then
@@ -60,6 +76,7 @@ if [ "$RUNTIME_USER" != "root" ] ; then
     exit 1
   fi
 fi
+
 # Setup the service on the system (defaulting to service name without environment)
 SC_SERVICE_FILE="scanoss-components-api.service"
 SC_SERVICE_NAME="scanoss-components-api"
