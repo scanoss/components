@@ -117,6 +117,7 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 				continue
 			}
 			version.Version = u.Version
+			version.Date = u.Date.String
 			if len(u.License) == 0 {
 				c.s.Infof("Empty license string supplied for: %+v. Skipping", u)
 				version.Licenses = []dtos.ComponentLicense{}
