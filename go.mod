@@ -12,7 +12,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/scanoss/go-grpc-helper v0.8.0
 	github.com/scanoss/go-purl-helper v0.2.1
-	github.com/scanoss/papi v0.2.0
+	github.com/scanoss/papi v0.14.0
 	github.com/scanoss/zap-logging-helper v0.3.2
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/metric v1.35.0
@@ -21,7 +21,7 @@ require (
 	modernc.org/sqlite v1.32.0
 )
 
-replace github.com/scanoss/papi => ../papi
+// replace github.com/scanoss/papi => ../papi
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
