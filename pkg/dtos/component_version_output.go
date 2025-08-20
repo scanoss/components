@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"go.uber.org/zap"
 )
 
@@ -19,8 +20,9 @@ type ComponentOutput struct {
 }
 
 type ComponentVersion struct {
-	Version  string             `json:"version"`
+	Date     string             `json:"date"`
 	Licenses []ComponentLicense `json:"licenses"`
+	Version  string             `json:"version"`
 }
 
 type ComponentLicense struct {
