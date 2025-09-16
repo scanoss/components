@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 	"scanoss.com/components/pkg/dtos"
+	se "scanoss.com/components/pkg/errors"
 )
 
 // Structure for storing OTEL metrics.
@@ -28,13 +29,11 @@ func setupMetrics() {
 func convertSearchComponentInput(s *zap.SugaredLogger, request *pb.CompSearchRequest) (dtos.ComponentSearchInput, error) {
 	data, err := json.Marshal(request)
 	if err != nil {
-		s.Errorf("Problem marshalling component request input: %v", err)
-		return dtos.ComponentSearchInput{}, errors.New("problem marshalling component input")
+		return dtos.ComponentSearchInput{}, se.NewBadRequestError("Error parsing request data", err)
 	}
 	dtoRequest, err := dtos.ParseComponentSearchInput(s, data)
 	if err != nil {
-		s.Errorf("Problem parsing component request input: %v", err)
-		return dtos.ComponentSearchInput{}, errors.New("problem parsing component input")
+		return dtos.ComponentSearchInput{}, se.NewBadRequestError("Error parsing request data", err)
 	}
 	return dtoRequest, nil
 }
@@ -57,13 +56,11 @@ func convertSearchComponentOutput(s *zap.SugaredLogger, output dtos.ComponentsSe
 func convertCompVersionsInput(s *zap.SugaredLogger, request *pb.CompVersionRequest) (dtos.ComponentVersionsInput, error) {
 	data, err := json.Marshal(request)
 	if err != nil {
-		s.Errorf("Problem marshalling component request input: %v", err)
-		return dtos.ComponentVersionsInput{}, errors.New("problem marshalling component version request input")
+		return dtos.ComponentVersionsInput{}, se.NewBadRequestError("Error parsing request data", err)
 	}
 	dtoRequest, err := dtos.ParseComponentVersionsInput(s, data)
 	if err != nil {
-		s.Errorf("Problem parsing component request input: %v", err)
-		return dtos.ComponentVersionsInput{}, errors.New("problem parsing component version input")
+		return dtos.ComponentVersionsInput{}, se.NewBadRequestError("Error parsing request data", err)
 	}
 	return dtoRequest, nil
 }

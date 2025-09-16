@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	se "scanoss.com/components/pkg/errors"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
@@ -72,6 +73,9 @@ func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (d
 		componentSearchResult.Purl = "pkg:" + component.PurlType + "/" + component.PurlName
 		componentSearchResult.Url = component.Url
 		componentsSearchResults = append(componentsSearchResults, componentSearchResult)
+	}
+	if len(componentsSearchResults) == 0 {
+		return dtos.ComponentsSearchOutput{}, se.NewNotFoundError("No components found matching the search criteria")
 	}
 	return dtos.ComponentsSearchOutput{Components: componentsSearchResults}, nil
 }
@@ -131,6 +135,9 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 			version.Licenses = append(version.Licenses, license)
 			output.Versions = append(output.Versions, version)
 		}
+	}
+	if output.Name == "" || output.Purl == "" {
+		return dtos.ComponentVersionsOutput{}, se.NewNotFoundError(fmt.Sprintf("purl: '%v' not found", request.Purl))
 	}
 	return dtos.ComponentVersionsOutput{Component: output}, nil
 }

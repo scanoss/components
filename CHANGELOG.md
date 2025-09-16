@@ -17,7 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - Deprecated `component` field in ComponentOutput and ComponentSearchOutput DTOs (use `name` instead)
 
-
 ## [0.5.0] - 2025-09-04
 ### Changed
 - Removed `/api` prefix from REST endpoints

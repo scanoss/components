@@ -34,3 +34,5 @@ local-build-commands.txt
 *.gz
 *.zip
 
+.idea
+
