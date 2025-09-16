@@ -67,10 +67,10 @@ func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (d
 
 	for _, component := range searchResults {
 		var componentSearchResult dtos.ComponentSearchOutput
-		componentSearchResult.Component = component.Component
+		componentSearchResult.Name = component.Component
+		componentSearchResult.Component = component.Component // Deprecated. Remove in future versions
 		componentSearchResult.Purl = "pkg:" + component.PurlType + "/" + component.PurlName
 		componentSearchResult.Url = component.Url
-
 		componentsSearchResults = append(componentsSearchResults, componentSearchResult)
 	}
 	return dtos.ComponentsSearchOutput{Components: componentsSearchResults}, nil
@@ -106,6 +106,7 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 	var output dtos.ComponentOutput
 	output.Purl = request.Purl
 	if len(allUrls) > 0 {
+		output.Name = allUrls[0].Component
 		output.Url = projectURL
 		output.Component = allUrls[0].Component
 		output.Versions = []dtos.ComponentVersion{}

@@ -12,7 +12,8 @@ type ComponentsSearchOutput struct {
 }
 
 type ComponentSearchOutput struct {
-	Component string `json:"component"`
+	Name      string `json:"name"`
+	Component string `json:"component"` // Deprecated
 	Purl      string `json:"purl"`
 	Url       string `json:"url"`
 }

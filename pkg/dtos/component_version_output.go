@@ -13,7 +13,8 @@ type ComponentVersionsOutput struct {
 }
 
 type ComponentOutput struct {
-	Component string             `json:"component"`
+	Name      string             `json:"name"`
+	Component string             `json:"component"` // Deprecated
 	Purl      string             `json:"purl"`
 	Url       string             `json:"url"`
 	Versions  []ComponentVersion `json:"versions"`

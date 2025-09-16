@@ -70,3 +70,5 @@ require (
 // ie. replace github.com/scanoss/papi => ../papi
 // require github.com/scanoss/papi v0.0.0-unpublished
 //replace 	github.com/scanoss/go-grpc-helper v0.6.0 => ../go-grpc-helper
+
+replace github.com/scanoss/papi => ../papi
