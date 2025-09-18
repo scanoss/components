@@ -12,7 +12,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/scanoss/go-grpc-helper v0.9.0
 	github.com/scanoss/go-purl-helper v0.2.1
-	github.com/scanoss/papi v0.18.0
+	github.com/scanoss/papi v0.21.0
 	github.com/scanoss/zap-logging-helper v0.4.0
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/metric v1.38.0
@@ -70,5 +70,3 @@ require (
 // ie. replace github.com/scanoss/papi => ../papi
 // require github.com/scanoss/papi v0.0.0-unpublished
 //replace 	github.com/scanoss/go-grpc-helper v0.6.0 => ../go-grpc-helper
-
-replace github.com/scanoss/papi => ../papi

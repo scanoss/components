@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Upcoming changes...
 - 
-## [0.6.0] - 2025-09-17
+## [0.6.0] - 2025-09-18
 ### Added
 - Added `name` field to component search and version response DTOs
 ### Changed
 - Updated component DTOs to use `name` field instead of `component` field
+- Upgraded `github.com/scanoss/papi` to v0.21.0
 ### Deprecated
 - Deprecated `component` field in ComponentOutput and ComponentSearchOutput DTOs (use `name` instead)
 

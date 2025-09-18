@@ -66,7 +66,7 @@ func NewBadRequestError(message string, err error) *ServiceError {
 // Use for: ecosystem not found, dependencies not found, resource missing.
 func NewNotFoundError(resource string) *ServiceError {
 	return &ServiceError{
-		Message:      fmt.Sprintf("%s", resource),
+		Message:      resource,
 		HTTPCode:     http.StatusNotFound,
 		InternalCode: "NOT_FOUND",
 		Err:          nil,
