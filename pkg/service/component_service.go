@@ -19,13 +19,13 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	common "github.com/scanoss/papi/api/commonv2"
 	pb "github.com/scanoss/papi/api/componentsv2"
 	myconfig "scanoss.com/components/pkg/config"
+	se "scanoss.com/components/pkg/errors"
 	"scanoss.com/components/pkg/usecase"
 	"time"
 )
@@ -54,22 +54,18 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 	s := ctxzap.Extract(ctx).Sugar()
 	s.Info("Processing component name request...")
 	if len(request.Search) == 0 && len(request.Component) == 0 && len(request.Vendor) == 0 {
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "There is no data to retrieve components"}
-		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("there is no data to retrieve components")
+		return &pb.CompSearchResponse{Status: se.HandleServiceError(ctx, s, se.NewBadRequestError("No data supplied", nil))}, nil
 	}
 	dtoRequest, err := convertSearchComponentInput(s, request) // Convert to internal DTO for processing
 	if err != nil {
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing component input data"}
-		return &pb.CompSearchResponse{Status: &statusResp}, errors.New("problem parsing component input data")
+		return &pb.CompSearchResponse{Status: se.HandleServiceError(ctx, s, err)}, nil
 	}
 
 	// Search the KB for information about the components
 	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace))
 	dtoComponents, err := compUc.SearchComponents(dtoRequest)
 	if err != nil {
-		s.Errorf("Failed to get components: %v", err)
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
-		return &pb.CompSearchResponse{Status: &statusResp}, nil
+		return &pb.CompSearchResponse{Status: se.HandleServiceError(ctx, s, err)}, nil
 	}
 	s.Debugf("Parsed Components: %+v", dtoComponents)
 	componentsResponse, err := convertSearchComponentOutput(s, dtoComponents) // Convert the internal data into a response object
@@ -91,23 +87,20 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 	s.Info("Processing component versions request...")
 	//Verify the input request
 	if len(request.Purl) == 0 {
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "There is no purl to retrieve component"}
-		return &pb.CompVersionResponse{Status: &statusResp}, errors.New("there is no purl to retrieve component")
+		return &pb.CompVersionResponse{Status: se.HandleServiceError(ctx, s, se.NewBadRequestError("No purl supplied", nil))}, nil
 	}
 	//Convert the request to internal DTO
 	dtoRequest, err := convertCompVersionsInput(s, request)
 	if err != nil {
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problem parsing component version input data"}
-		return &pb.CompVersionResponse{Status: &statusResp}, errors.New("problem parsing component version input data")
+		return &pb.CompVersionResponse{Status: se.HandleServiceError(ctx, s, err)}, nil
 	}
 	// Creates the use case
 	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace))
 	dtoOutput, err := compUc.GetComponentVersions(dtoRequest)
 	if err != nil {
-		s.Errorf("Failed to get components: %v", err)
-		statusResp := common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}
-		return &pb.CompVersionResponse{Status: &statusResp}, nil
+		return &pb.CompVersionResponse{Status: se.HandleServiceError(ctx, s, err)}, nil
 	}
+
 	reqResponse, err := convertCompVersionsOutput(s, dtoOutput)
 	if err != nil {
 		s.Errorf("Failed to convert parsed components: %v", err)

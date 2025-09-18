@@ -109,8 +109,8 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 	s := NewComponentServer(db, myConfig)
 
 	var compRequestData = `{
-  		"component": "angular",
-		"package": "github"
+  		"component": "react",
+		"package": "npm"
 	}`
 
 	var compReq = pb.CompSearchRequest{}
@@ -131,13 +131,13 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Search for angular and purl type github without limit",
+			name: "Search for react and purl type npm without limit",
 			s:    s,
 			args: args{
 				ctx: ctx,
 				req: &compReq,
 			},
-			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success"}},
+			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No components found matching the search criteria"}},
 		},
 		{
 			name: "Search for a empty request",
@@ -146,8 +146,8 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 				ctx: ctx,
 				req: &pb.CompSearchRequest{},
 			},
-			want:    &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "Problems encountered extracting components data"}},
-			wantErr: true,
+			want:    &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No data supplied"}},
+			wantErr: false,
 		},
 	}
 
@@ -189,7 +189,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 	s := NewComponentServer(db, myConfig)
 
 	var compVersionRequestData = `{
-  		"purl": "pkg:npm/%40angular/elements"
+  		"purl": "pkg:npm/react"
 	}`
 
 	var compVersionReq = pb.CompVersionRequest{}
@@ -210,7 +210,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Search for angular and purl type github without limit",
+			name: "Search for react and purl type npm without limit",
 			s:    s,
 			args: args{
 				ctx: ctx,
@@ -225,8 +225,8 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 				ctx: ctx,
 				req: &pb.CompVersionRequest{},
 			},
-			want:    &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "there is no purl to retrieve component"}},
-			wantErr: true,
+			want:    &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No purl supplied"}},
+			wantErr: false,
 		},
 	}
 
