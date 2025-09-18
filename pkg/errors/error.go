@@ -53,7 +53,7 @@ func (e *ServiceError) GetHTTPCode() int {
 	return e.HTTPCode
 }
 
-// Use for: missing required fields, malformed input, invalid parameters.
+// NewBadRequestError Use for: missing required fields, malformed input, invalid parameters.
 func NewBadRequestError(message string, err error) *ServiceError {
 	return &ServiceError{
 		Message:      message,
@@ -63,33 +63,13 @@ func NewBadRequestError(message string, err error) *ServiceError {
 	}
 }
 
-// Use for: ecosystem not found, dependencies not found, resource missing.
+// NewNotFoundError Use for: ecosystem not found, dependencies not found, resource missing.
 func NewNotFoundError(resource string) *ServiceError {
 	return &ServiceError{
 		Message:      resource,
 		HTTPCode:     http.StatusNotFound,
 		InternalCode: "NOT_FOUND",
 		Err:          nil,
-	}
-}
-
-// Use for: unexpected errors, programming errors, unhandled exceptions.
-func NewInternalError(message string, err error) *ServiceError {
-	return &ServiceError{
-		Message:      message,
-		HTTPCode:     http.StatusInternalServerError,
-		InternalCode: "INTERNAL_ERROR",
-		Err:          err,
-	}
-}
-
-// Use for: database down, external service timeout, rate limits exceeded.
-func NewServiceUnavailableError(message string, err error) *ServiceError {
-	return &ServiceError{
-		Message:      message,
-		HTTPCode:     http.StatusServiceUnavailable,
-		InternalCode: "SERVICE_UNAVAILABLE",
-		Err:          err,
 	}
 }
 

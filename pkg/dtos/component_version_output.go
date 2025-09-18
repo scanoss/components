@@ -13,11 +13,12 @@ type ComponentVersionsOutput struct {
 }
 
 type ComponentOutput struct {
-	Name      string             `json:"name"`
-	Component string             `json:"component"` // Deprecated
-	Purl      string             `json:"purl"`
-	Url       string             `json:"url"`
-	Versions  []ComponentVersion `json:"versions"`
+	Name      string `json:"name"`
+	Component string `json:"component"` // Deprecated. Component and name fields will contain the same data until
+	// the component field is removed
+	Purl     string             `json:"purl"`
+	Url      string             `json:"url"`
+	Versions []ComponentVersion `json:"versions"`
 }
 
 type ComponentVersion struct {

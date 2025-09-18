@@ -13,9 +13,10 @@ type ComponentsSearchOutput struct {
 
 type ComponentSearchOutput struct {
 	Name      string `json:"name"`
-	Component string `json:"component"` // Deprecated
-	Purl      string `json:"purl"`
-	Url       string `json:"url"`
+	Component string `json:"component"` // Deprecated. Component and name fields will contain the same data until
+	// the component field is removed
+	Purl string `json:"purl"`
+	Url  string `json:"url"`
 }
 
 func ExportComponentSearchOutput(s *zap.SugaredLogger, output ComponentsSearchOutput) ([]byte, error) {
