@@ -27,6 +27,7 @@ import (
 	"github.com/scanoss/go-grpc-helper/pkg/files"
 	gd "github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	gs "github.com/scanoss/go-grpc-helper/pkg/grpc/server"
+	gomodels "github.com/scanoss/go-models/pkg/models"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	_ "modernc.org/sqlite"
 	"net/http"
@@ -108,6 +109,17 @@ func RunServer() error {
 		return err
 	}
 	defer gd.CloseDBConnection(db)
+	// Log database version info
+	dbVersionModel := gomodels.NewDBVersionModel(db)
+	dbVersion, dbVersionErr := dbVersionModel.GetCurrentVersion(context.Background())
+	if dbVersionErr != nil {
+		zlog.S.Warnf("Could not read db_version table: %v", dbVersionErr)
+	} else if len(dbVersion.SchemaVersion) > 0 {
+		zlog.S.Infof("Loaded decoration DB: package=%s, schema=%s, created_at=%s",
+			dbVersion.PackageName, dbVersion.SchemaVersion, dbVersion.CreatedAt)
+	} else {
+		zlog.S.Warn("db_version table is empty")
+	}
 	// Setup dynamic logging (if necessary)
 	zlog.SetupAppDynamicLogging(cfg.Logging.DynamicPort, cfg.Logging.DynamicLogging)
 	// Register the component service
