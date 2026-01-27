@@ -48,7 +48,7 @@ func TestComponentServer_Echo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	s := NewComponentServer(db, myConfig)
+	s := NewComponentServer(db, myConfig, "test-version")
 
 	type args struct {
 		ctx context.Context
@@ -106,7 +106,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	s := NewComponentServer(db, myConfig)
+	s := NewComponentServer(db, myConfig, "test-version")
 
 	var compRequestData = `{
   		"component": "react",
@@ -137,7 +137,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 				ctx: ctx,
 				req: &compReq,
 			},
-			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No components found matching the search criteria"}},
+			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No components found matching the search criteria", Server: &common.StatusResponse_Server{Version: "test-version"}}},
 		},
 		{
 			name: "Search for a empty request",
@@ -146,7 +146,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 				ctx: ctx,
 				req: &pb.CompSearchRequest{},
 			},
-			want:    &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No data supplied"}},
+			want:    &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No data supplied", Server: &common.StatusResponse_Server{Version: "test-version"}}},
 			wantErr: false,
 		},
 	}
@@ -159,7 +159,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 				return
 			}
 			if err == nil && !reflect.DeepEqual(got.Status, tt.want.Status) {
-				t.Errorf("service.SearchComponents() = %v, want %v", got, tt.want)
+				t.Errorf("service.SearchComponents() status = %v, want %v", got.Status, tt.want.Status)
 			}
 		})
 	}
@@ -186,7 +186,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	s := NewComponentServer(db, myConfig)
+	s := NewComponentServer(db, myConfig, "test-version")
 
 	var compVersionRequestData = `{
   		"purl": "pkg:npm/react"
@@ -216,7 +216,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 				ctx: ctx,
 				req: &compVersionReq,
 			},
-			want: &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success"}},
+			want: &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success", Server: &common.StatusResponse_Server{Version: "test-version"}}},
 		},
 		{
 			name: "Search for a empty request",
@@ -225,7 +225,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 				ctx: ctx,
 				req: &pb.CompVersionRequest{},
 			},
-			want:    &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No purl supplied"}},
+			want:    &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No purl supplied", Server: &common.StatusResponse_Server{Version: "test-version"}}},
 			wantErr: false,
 		},
 	}
@@ -238,7 +238,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 				return
 			}
 			if err == nil && !reflect.DeepEqual(got.Status, tt.want.Status) {
-				t.Errorf("service.SearchComponents() = %v, want %v", got, tt.want)
+				t.Errorf("service.GetComponentVersions() status = %v, want %v", got.Status, tt.want.Status)
 			}
 		})
 	}

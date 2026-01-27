@@ -10,9 +10,10 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
-	github.com/scanoss/go-grpc-helper v0.9.0
+	github.com/scanoss/go-grpc-helper v0.11.0
+	github.com/scanoss/go-models v0.3.0
 	github.com/scanoss/go-purl-helper v0.2.1
-	github.com/scanoss/papi v0.21.0
+	github.com/scanoss/papi v0.28.0
 	github.com/scanoss/zap-logging-helper v0.4.0
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/metric v1.38.0
