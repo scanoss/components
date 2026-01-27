@@ -111,7 +111,7 @@ func RunServer() error {
 	// Setup dynamic logging (if necessary)
 	zlog.SetupAppDynamicLogging(cfg.Logging.DynamicPort, cfg.Logging.DynamicLogging)
 	// Register the component service
-	v2API := service.NewComponentServer(db, cfg)
+	v2API := service.NewComponentServer(db, cfg, strings.TrimSpace(version))
 	ctx := context.Background()
 	// Start the REST grpc-gateway if requested
 	var srv *http.Server
