@@ -39,6 +39,9 @@ import (
 	"strings"
 )
 
+//TODO: Now the config includes the app version. 
+//  This might be worth moving to the file pkg/config/server_config.go
+
 //go:generate bash ../../get_version.sh
 //go:embed version.txt
 var version string
