@@ -30,6 +30,7 @@ const (
 type ServerConfig struct {
 	App struct {
 		Name           string `env:"APP_NAME"`
+		Version        string `env:"APP_VERSION"`
 		GRPCPort       string `env:"APP_PORT"`
 		RESTPort       string `env:"REST_PORT"`
 		Debug          bool   `env:"APP_DEBUG"`           // true/false

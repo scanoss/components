@@ -37,16 +37,14 @@ type componentServer struct {
 	pb.ComponentsServer
 	db             *sqlx.DB
 	config         *myconfig.ServerConfig
-	version        string
 	dbVersionModel *gomodels.DBVersionModel
 }
 
-func NewComponentServer(db *sqlx.DB, config *myconfig.ServerConfig, version string) pb.ComponentsServer {
+func NewComponentServer(db *sqlx.DB, config *myconfig.ServerConfig) pb.ComponentsServer {
 	setupMetrics()
 	return &componentServer{
 		db:             db,
 		config:         config,
-		version:        version,
 		dbVersionModel: gomodels.NewDBVersionModel(db),
 	}
 }
@@ -66,14 +64,14 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 	if len(request.Search) == 0 && len(request.Component) == 0 && len(request.Vendor) == 0 {
 		status := se.HandleServiceError(ctx, s, se.NewBadRequestError("No data supplied", nil))
 		status.Db = d.getDBVersion()
-		status.Server = &common.StatusResponse_Server{Version: d.version}
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
 		return &pb.CompSearchResponse{Status: status}, nil
 	}
 	dtoRequest, err := convertSearchComponentInput(s, request) // Convert to internal DTO for processing
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
 		status.Db = d.getDBVersion()
-		status.Server = &common.StatusResponse_Server{Version: d.version}
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
 		return &pb.CompSearchResponse{Status: status}, nil
 	}
 
@@ -83,7 +81,7 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
 		status.Db = d.getDBVersion()
-		status.Server = &common.StatusResponse_Server{Version: d.version}
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
 		return &pb.CompSearchResponse{Status: status}, nil
 	}
 	s.Debugf("Parsed Components: %+v", dtoComponents)
@@ -94,7 +92,7 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 			Status:  common.StatusCode_FAILED,
 			Message: "Problems encountered extracting components data",
 			Db:      d.getDBVersion(),
-			Server:  &common.StatusResponse_Server{Version: d.version},
+			Server:  &common.StatusResponse_Server{Version: d.config.App.Version},
 		}}, nil
 	}
 	telemetryCompNameRequestTime(ctx, d.config, requestStartTime) // Record the request processing time
@@ -103,7 +101,7 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 		Status:  common.StatusCode_SUCCESS,
 		Message: "Success",
 		Db:      d.getDBVersion(),
-		Server:  &common.StatusResponse_Server{Version: d.version},
+		Server:  &common.StatusResponse_Server{Version: d.config.App.Version},
 	}}, nil
 }
 
@@ -116,7 +114,7 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 	if len(request.Purl) == 0 {
 		status := se.HandleServiceError(ctx, s, se.NewBadRequestError("No purl supplied", nil))
 		status.Db = d.getDBVersion()
-		status.Server = &common.StatusResponse_Server{Version: d.version}
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
 		return &pb.CompVersionResponse{Status: status}, nil
 	}
 	//Convert the request to internal DTO
@@ -124,7 +122,7 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
 		status.Db = d.getDBVersion()
-		status.Server = &common.StatusResponse_Server{Version: d.version}
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
 		return &pb.CompVersionResponse{Status: status}, nil
 	}
 	// Creates the use case
@@ -133,7 +131,7 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
 		status.Db = d.getDBVersion()
-		status.Server = &common.StatusResponse_Server{Version: d.version}
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
 		return &pb.CompVersionResponse{Status: status}, nil
 	}
 
@@ -144,7 +142,7 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 			Status:  common.StatusCode_FAILED,
 			Message: "Problems encountered extracting components data",
 			Db:      d.getDBVersion(),
-			Server:  &common.StatusResponse_Server{Version: d.version},
+			Server:  &common.StatusResponse_Server{Version: d.config.App.Version},
 		}}, nil
 	}
 	telemetryCompVersionRequestTime(ctx, d.config, requestStartTime)
@@ -153,7 +151,7 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 		Status:  common.StatusCode_SUCCESS,
 		Message: "Success",
 		Db:      d.getDBVersion(),
-		Server:  &common.StatusResponse_Server{Version: d.version},
+		Server:  &common.StatusResponse_Server{Version: d.config.App.Version},
 	}}, nil
 }
 

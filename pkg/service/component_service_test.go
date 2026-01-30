@@ -48,7 +48,8 @@ func TestComponentServer_Echo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	s := NewComponentServer(db, myConfig, "test-version")
+	myConfig.App.Version = "test-version"
+	s := NewComponentServer(db, myConfig)
 
 	type args struct {
 		ctx context.Context
@@ -106,7 +107,8 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	s := NewComponentServer(db, myConfig, "test-version")
+	myConfig.App.Version = "test-version"
+	s := NewComponentServer(db, myConfig)
 
 	var compRequestData = `{
   		"component": "react",
@@ -186,7 +188,8 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	s := NewComponentServer(db, myConfig, "test-version")
+	myConfig.App.Version = "test-version"
+	s := NewComponentServer(db, myConfig)
 
 	var compVersionRequestData = `{
   		"purl": "pkg:npm/react"
