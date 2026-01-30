@@ -36,3 +36,5 @@ local-build-commands.txt
 
 .idea
 
+config/*test*
+
