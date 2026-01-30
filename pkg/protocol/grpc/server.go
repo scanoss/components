@@ -28,12 +28,12 @@ import (
 
 // RunServer runs gRPC service to publish.
 func RunServer(config *myconfig.ServerConfig, v2API pb.ComponentsServer, port string,
-	allowedIPs, deniedIPs []string, startTLS bool, version string) (*grpc.Server, error) {
+	allowedIPs, deniedIPs []string, startTLS bool) (*grpc.Server, error) {
 	// Start up Open Telemetry is requested
 	var oltpShutdown = func() {}
 	if config.Telemetry.Enabled {
 		var err error
-		oltpShutdown, err = otel.InitTelemetryProviders(config.App.Name, "scanoss-components", version,
+		oltpShutdown, err = otel.InitTelemetryProviders(config.App.Name, "scanoss-components", config.App.Version,
 			config.Telemetry.OltpExporter, otel.GetTraceSampler(config.App.Mode), false)
 		if err != nil {
 			return nil, err

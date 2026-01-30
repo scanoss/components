@@ -97,7 +97,11 @@ func RunServer() error {
 		return err
 	}
 
-	zlog.S.Infof("Starting SCANOSS Component Service: %v", strings.TrimSpace(version))
+	// Set the default version from the embedded binary version if not overridden by config/env
+	if len(cfg.App.Version) == 0 {
+		cfg.App.Version = strings.TrimSpace(version)
+	}
+	zlog.S.Infof("Starting SCANOSS Component Service: %v", cfg.App.Version)
 
 	// Setup database connection pool
 	db, err := gd.OpenDBConnection(cfg.Database.Dsn, cfg.Database.Driver, cfg.Database.User, cfg.Database.Passwd,
@@ -123,7 +127,7 @@ func RunServer() error {
 	// Setup dynamic logging (if necessary)
 	zlog.SetupAppDynamicLogging(cfg.Logging.DynamicPort, cfg.Logging.DynamicLogging)
 	// Register the component service
-	v2API := service.NewComponentServer(db, cfg, strings.TrimSpace(version))
+	v2API := service.NewComponentServer(db, cfg)
 	ctx := context.Background()
 	// Start the REST grpc-gateway if requested
 	var srv *http.Server
@@ -133,7 +137,7 @@ func RunServer() error {
 		}
 	}
 	// Start the gRPC service
-	server, err := grpc.RunServer(cfg, v2API, cfg.App.GRPCPort, allowedIPs, deniedIPs, startTLS, version)
+	server, err := grpc.RunServer(cfg, v2API, cfg.App.GRPCPort, allowedIPs, deniedIPs, startTLS)
 	if err != nil {
 		return err
 	}
