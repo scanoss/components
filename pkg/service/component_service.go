@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
@@ -176,7 +177,14 @@ func telemetryCompVersionRequestTime(ctx context.Context, config *myconfig.Serve
 // Returns nil if the table doesn't exist or query fails (backward compatibility).
 func (d componentServer) getDBVersion() *common.StatusResponse_DB {
 	dbVersion, err := d.dbVersionModel.GetCurrentVersion(context.Background())
-	if err != nil || len(dbVersion.SchemaVersion) == 0 {
+	if err != nil {
+		if !errors.Is(err, gomodels.ErrTableNotFound) {
+			s := ctxzap.Extract(context.Background()).Sugar()
+			s.Errorf("Failed to get db version: %v", err)
+		}
+		return nil
+	}
+	if len(dbVersion.SchemaVersion) == 0 {
 		return nil
 	}
 	return &common.StatusResponse_DB{
