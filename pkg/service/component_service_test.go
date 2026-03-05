@@ -246,3 +246,80 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 		})
 	}
 }
+
+func TestComponentServer_GetComponentStatus(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
+	db, err := sqlx.Connect("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer models.CloseDB(db)
+	err = models.LoadTestSQLData(db, nil, nil)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when loading test data", err)
+	}
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	myConfig.App.Version = "test-version"
+	s := NewComponentServer(db, myConfig)
+
+	type args struct {
+		ctx context.Context
+		req *common.ComponentRequest
+	}
+	tests := []struct {
+		name    string
+		s       pb.ComponentsServer
+		args    args
+		wantErr bool
+		checkFn func(*testing.T, *pb.ComponentStatusResponse)
+	}{
+		{
+			name: "Get status for react npm package",
+			s:    s,
+			args: args{
+				ctx: ctx,
+				req: &common.ComponentRequest{
+					Purl:        "pkg:npm/react",
+					Requirement: "^18.0.0",
+				},
+			},
+			wantErr: false,
+			checkFn: func(t *testing.T, resp *pb.ComponentStatusResponse) {
+				if resp == nil {
+					t.Error("Expected non-nil response")
+				}
+			},
+		},
+		{
+			name: "Get status with empty purl",
+			s:    s,
+			args: args{
+				ctx: ctx,
+				req: &common.ComponentRequest{},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.GetComponentStatus(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("service.GetComponentStatus() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.checkFn != nil && err == nil {
+				tt.checkFn(t, got)
+			}
+		})
+	}
+}

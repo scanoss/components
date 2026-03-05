@@ -68,6 +68,9 @@ type ServerConfig struct {
 		BlockByDefault bool   `env:"COMP_BLOCK_BY_DEFAULT"` // Block request by default if they are not in the allow list
 		TrustProxy     bool   `env:"COMP_TRUST_PROXY"`      // Trust the interim proxy or not (causes the source IP to be validated instead of the proxy)
 	}
+	StatusMapping struct {
+		Mapping string `env:"STATUS_MAPPING"` // JSON string mapping DB statuses to classified statuses, e.g. {"unlisted":"removed","yanked":"removed"}
+	}
 }
 
 // NewServerConfig loads all config options and return a struct for use
