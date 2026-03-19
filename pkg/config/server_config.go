@@ -17,6 +17,8 @@
 package config
 
 import (
+	"encoding/json"
+
 	"github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
 	"go.uber.org/zap"
@@ -26,6 +28,23 @@ const (
 	defaultGrpcPort = "50053"
 	defaultRestPort = "40053"
 )
+
+// parseStatusMappingString converts a string to interface{} for StatusMapper
+// It handles both JSON object format (from config file) and JSON string format (from env var)
+func parseStatusMappingString(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+
+	// Try to unmarshal as map first (JSON object from config file)
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &m); err == nil {
+		return m
+	}
+
+	// Otherwise return as string (JSON string from env var)
+	return s
+}
 
 // ServerConfig is configuration for Server
 type ServerConfig struct {
@@ -70,10 +89,12 @@ type ServerConfig struct {
 		TrustProxy     bool   `env:"COMP_TRUST_PROXY"`      // Trust the interim proxy or not (causes the source IP to be validated instead of the proxy)
 	}
 	StatusMapping struct {
-		Mapping interface{} `env:"STATUS_MAPPING"` // Map or JSON string mapping DB statuses to classified statuses
+		Mapping string `env:"STATUS_MAPPING"` // JSON string mapping DB statuses to classified statuses (from env or file)
 	}
 	// StatusMapper is the compiled status mapper (initialized once at startup)
 	statusMapper *StatusMapper
+	// rawConfig stores the raw config for post-processing
+	rawConfig map[string]interface{}
 }
 
 // NewServerConfig loads all config options and return a struct for use
@@ -93,7 +114,7 @@ func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
 
 	// Initialize the status mapper once at startup
 	s := zap.S() // Get global sugared logger
-	cfg.statusMapper = NewStatusMapper(s, cfg.StatusMapping.Mapping)
+	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.StatusMapping.Mapping))
 
 	return &cfg, nil
 }
