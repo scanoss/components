@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package usecase
+package config
 
 import (
 	"testing"
@@ -199,5 +199,89 @@ func TestGetDefaultStatusMapping(t *testing.T) {
 		} else if actualValue != expectedValue {
 			t.Errorf("Default mapping for %q: got %q, expected %q", key, actualValue, expectedValue)
 		}
+	}
+}
+
+func TestStatusMapper_MapStatus_MapFormat(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	s := zlog.S
+
+	// Create mapper with map[string]interface{} format (as from JSON config file)
+	customMapping := map[string]interface{}{
+		"unlisted":   "custom-removed",
+		"new-status": "custom-value",
+		"active":     "still-active",
+	}
+	mapper := NewStatusMapper(s, customMapping)
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"map format: custom unlisted mapping", "unlisted", "custom-removed"},
+		{"map format: custom new-status mapping", "new-status", "custom-value"},
+		{"map format: custom active override", "active", "still-active"},
+		{"map format: default yanked still works", "yanked", "removed"},
+		{"map format: default deleted still works", "deleted", "deleted"},
+		{"map format: unknown status returns original", "completely-unknown", "completely-unknown"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := mapper.MapStatus(tc.input)
+			if result != tc.expected {
+				t.Errorf("MapStatus(%q) = %q, expected %q", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestStatusMapper_NilConfig(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	s := zlog.S
+
+	// Create mapper with nil config (should use defaults)
+	mapper := NewStatusMapper(s, nil)
+
+	result := mapper.MapStatus("unlisted")
+	if result != "removed" {
+		t.Errorf("MapStatus with nil config should use defaults, got %q, expected %q", result, "removed")
+	}
+}
+
+func TestStatusMapper_MapWithNonStringValue(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	s := zlog.S
+
+	// Create mapper with map containing non-string values
+	customMapping := map[string]interface{}{
+		"unlisted": "custom-removed",
+		"active":   123, // Invalid: not a string
+	}
+	mapper := NewStatusMapper(s, customMapping)
+
+	// unlisted should work (it's a string)
+	result := mapper.MapStatus("unlisted")
+	if result != "custom-removed" {
+		t.Errorf("MapStatus('unlisted') = %q, expected %q", result, "custom-removed")
+	}
+
+	// active should use default (non-string value was skipped)
+	result = mapper.MapStatus("active")
+	if result != "active" {
+		t.Errorf("MapStatus('active') with non-string value should use default, got %q, expected %q", result, "active")
 	}
 }

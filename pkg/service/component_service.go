@@ -76,7 +76,7 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 	}
 
 	// Search the KB for information about the components
-	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.StatusMapping.Mapping)
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.GetStatusMapper())
 	dtoComponents, err := compUc.SearchComponents(dtoRequest)
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
@@ -126,7 +126,7 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 		return &pb.CompVersionResponse{Status: status}, nil
 	}
 	// Creates the use case
-	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.StatusMapping.Mapping)
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.GetStatusMapper())
 	dtoOutput, err := compUc.GetComponentVersions(dtoRequest)
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
@@ -190,7 +190,7 @@ func (d componentServer) GetComponentStatus(ctx context.Context, request *common
 	}
 
 	// Create the use case
-	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.StatusMapping.Mapping)
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.GetStatusMapper())
 	dtoOutput, err := compUc.GetComponentStatus(dtoRequest)
 	if err != nil {
 		s.Errorf("Failed to get component status: %v", err)
@@ -230,7 +230,7 @@ func (d componentServer) GetComponentsStatus(ctx context.Context, request *commo
 	}
 
 	// Create the use case
-	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.StatusMapping.Mapping)
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.GetStatusMapper())
 	dtoOutput, err := compUc.GetComponentsStatus(dtoRequest)
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)

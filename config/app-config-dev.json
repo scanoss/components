@@ -10,5 +10,16 @@
     "User":   "scanoss",
     "Passwd": "secret123!",
     "Schema": "scanoss"
+  },
+  "StatusMapping": {
+    "Mapping": {
+      "unlisted": "removed",
+      "yanked": "removed",
+      "deleted": "deleted",
+      "deprecated": "deprecated",
+      "unpublished": "removed",
+      "archived": "deprecated",
+      "active": "active"
+    }
   }
 }

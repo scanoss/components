@@ -102,13 +102,13 @@ func convertComponentStatusOutput(s *zap.SugaredLogger, output dtos.ComponentSta
 	}
 	if output.ComponentStatus.ErrorCode == nil {
 		response.ComponentStatus = &pb.ComponentStatusResponse_ComponentStatus{
-			FirstIndexedDate: &output.ComponentStatus.FirstIndexedDate,
-			LastIndexedDate:  &output.ComponentStatus.LastIndexedDate,
-			Status:           &output.ComponentStatus.Status,
-			RepositoryStatus: &output.ComponentStatus.RepositoryStatus,
+			FirstIndexedDate: output.ComponentStatus.FirstIndexedDate,
+			LastIndexedDate:  output.ComponentStatus.LastIndexedDate,
+			Status:           output.ComponentStatus.Status,
+			RepositoryStatus: output.ComponentStatus.RepositoryStatus,
 		}
 		if output.ComponentStatus.StatusChangeDate != "" {
-			response.ComponentStatus.StatusChangeDate = &output.ComponentStatus.StatusChangeDate
+			response.ComponentStatus.StatusChangeDate = output.ComponentStatus.StatusChangeDate
 		}
 		response.Name = output.Name
 	} else {
@@ -122,12 +122,12 @@ func convertComponentStatusOutput(s *zap.SugaredLogger, output dtos.ComponentSta
 		if output.VersionStatus.ErrorCode == nil {
 			response.VersionStatus = &pb.ComponentStatusResponse_VersionStatus{
 				Version:          output.VersionStatus.Version,
-				RepositoryStatus: &output.VersionStatus.RepositoryStatus,
-				Status:           &output.VersionStatus.Status,
-				IndexedDate:      &output.VersionStatus.IndexedDate,
+				RepositoryStatus: output.VersionStatus.RepositoryStatus,
+				Status:           output.VersionStatus.Status,
+				IndexedDate:      output.VersionStatus.IndexedDate,
 			}
 			if output.VersionStatus.StatusChangeDate != "" {
-				response.VersionStatus.StatusChangeDate = &output.VersionStatus.StatusChangeDate
+				response.VersionStatus.StatusChangeDate = output.VersionStatus.StatusChangeDate
 			}
 		} else {
 			response.VersionStatus = &pb.ComponentStatusResponse_VersionStatus{

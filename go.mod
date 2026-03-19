@@ -1,6 +1,6 @@
 module scanoss.com/components
 
-go 1.24.0
+go 1.24.4
 
 toolchain go1.24.6
 
@@ -10,11 +10,11 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.11.2
-	github.com/scanoss/go-component-helper v0.1.0
+	github.com/scanoss/go-component-helper v0.4.0
 	github.com/scanoss/go-grpc-helper v0.13.0
-	github.com/scanoss/go-models v0.5.1
+	github.com/scanoss/go-models v0.7.0
 	github.com/scanoss/go-purl-helper v0.2.1
-	github.com/scanoss/papi v0.31.0
+	github.com/scanoss/papi v0.32.1
 	github.com/scanoss/zap-logging-helper v0.4.0
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/metric v1.40.0
@@ -72,9 +72,9 @@ require (
 // Details of how to use the "replace" command for local development
 // https://github.com/golang/go/wiki/Modules#when-should-i-use-the-replace-directive
 // ie.
-replace github.com/scanoss/papi => ../papi
+//replace github.com/scanoss/papi => ../papi
 
-//replace github.com/scanoss/go-component-helper => ../go-component-helper
+//replace github.com/scanoss/go-component-helper/componenthelper => ../go-component-helper
 
 // require github.com/scanoss/papi v0.0.0-unpublished
 //replace 	github.com/scanoss/go-grpc-helper v0.6.0 => ../go-grpc-helper

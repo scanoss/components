@@ -19,6 +19,7 @@ package config
 import (
 	"github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
+	"go.uber.org/zap"
 )
 
 const (
@@ -69,8 +70,10 @@ type ServerConfig struct {
 		TrustProxy     bool   `env:"COMP_TRUST_PROXY"`      // Trust the interim proxy or not (causes the source IP to be validated instead of the proxy)
 	}
 	StatusMapping struct {
-		Mapping string `env:"STATUS_MAPPING"` // JSON string mapping DB statuses to classified statuses, e.g. {"unlisted":"removed","yanked":"removed"}
+		Mapping interface{} `env:"STATUS_MAPPING"` // Map or JSON string mapping DB statuses to classified statuses
 	}
+	// StatusMapper is the compiled status mapper (initialized once at startup)
+	statusMapper *StatusMapper
 }
 
 // NewServerConfig loads all config options and return a struct for use
@@ -87,6 +90,11 @@ func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize the status mapper once at startup
+	s := zap.S() // Get global sugared logger
+	cfg.statusMapper = NewStatusMapper(s, cfg.StatusMapping.Mapping)
+
 	return &cfg, nil
 }
 
@@ -108,4 +116,9 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.Logging.DynamicPort = "localhost:60053"
 	cfg.Telemetry.Enabled = false
 	cfg.Telemetry.OltpExporter = "0.0.0.0:4317" // Default OTEL OLTP gRPC Exporter endpoint
+}
+
+// GetStatusMapper returns the status mapper for mapping database statuses to classified statuses
+func (cfg *ServerConfig) GetStatusMapper() *StatusMapper {
+	return cfg.statusMapper
 }

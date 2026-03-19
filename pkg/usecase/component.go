@@ -30,6 +30,7 @@ import (
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/domain"
 	purlhelper "github.com/scanoss/go-purl-helper/pkg"
 	"go.uber.org/zap"
+	"scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/dtos"
 	"scanoss.com/components/pkg/models"
 )
@@ -42,16 +43,16 @@ type ComponentUseCase struct {
 	allUrl          *models.AllUrlsModel
 	componentStatus *models.ComponentStatusModel
 	db              *sqlx.DB
-	statusMapper    *StatusMapper
+	statusMapper    *config.StatusMapper
 }
 
-func NewComponents(ctx context.Context, s *zap.SugaredLogger, db *sqlx.DB, q *database.DBQueryContext, statusMappingJSON string) *ComponentUseCase {
+func NewComponents(ctx context.Context, s *zap.SugaredLogger, db *sqlx.DB, q *database.DBQueryContext, statusMapper *config.StatusMapper) *ComponentUseCase {
 	return &ComponentUseCase{ctx: ctx, s: s, q: q,
 		components:      models.NewComponentModel(ctx, s, q, database.GetLikeOperator(db)),
 		allUrl:          models.NewAllUrlModel(ctx, s, q),
 		componentStatus: models.NewComponentStatusModel(ctx, s, q),
 		db:              db,
-		statusMapper:    NewStatusMapper(s, statusMappingJSON),
+		statusMapper:    statusMapper,
 	}
 }
 
@@ -170,7 +171,8 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 
 	if len(results) > 0 {
 		// Component and Version exists or requirement met
-		if results[0].Status.StatusCode == domain.Success {
+		switch results[0].Status.StatusCode {
+		case domain.Success:
 			statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(results[0].Purl)
 			if errComp != nil {
 				return dtos.ComponentStatusOutput{}, se.NewBadRequestError("Error retrieving Component level data", errors.New("Error retrieving Component Level Data"))
@@ -214,7 +216,7 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 
 			return output, nil
 
-		} else if results[0].Status.StatusCode == domain.VersionNotFound { // Valid component but VERSION NOT FOUND
+		case domain.VersionNotFound: // Valid component but VERSION NOT FOUND
 			statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(results[0].Purl)
 			if errComp != nil {
 				return dtos.ComponentStatusOutput{}, se.NewBadRequestError("Error retrieving information", errors.New("Error retrieving information"))
@@ -235,7 +237,7 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 				},
 			}
 			return output, nil
-		} else if results[0].Status.StatusCode == domain.InvalidPurl { // The requested purl is invalid, minimun data retrieved
+		case domain.InvalidPurl: // The requested purl is invalid, minimun data retrieved
 			errorStatus := dtos.ComponentStatusOutput{
 				Purl:        results[0].Purl,
 				Name:        "",
@@ -247,7 +249,7 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 			}
 			return errorStatus, nil
 
-		} else if results[0].Status.StatusCode == domain.ComponentNotFound { // Component not found on DB, minimun data retrieved
+		case domain.ComponentNotFound: // Component not found on DB, minimun data retrieved
 			errorStatus := dtos.ComponentStatusOutput{
 				Purl:        results[0].Purl,
 				Name:        "",
