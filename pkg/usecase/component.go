@@ -193,12 +193,6 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 				Purl:        request.Purl,
 				Name:        statComponent.Component,
 				Requirement: request.Requirement,
-				VersionStatus: &dtos.VersionStatusOutput{
-					Version:          statusVersion.Version,
-					Status:           c.statusMapper.MapStatus(statusVersion.VersionStatus.String),
-					RepositoryStatus: statusVersion.VersionStatus.String,
-					IndexedDate:      statusVersion.IndexedDate.String,
-				},
 				ComponentStatus: &dtos.ComponentStatusInfo{
 					Status:           c.statusMapper.MapStatus(statComponent.Status.String),
 					RepositoryStatus: statComponent.Status.String,
@@ -206,10 +200,17 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 					LastIndexedDate:  statComponent.LastIndexedDate.String,
 				},
 			}
-			if statusVersion.VersionStatusChangeDate.String != "" {
-				output.VersionStatus.StatusChangeDate = statusVersion.VersionStatusChangeDate.String
+			if statusVersion != nil {
+				output.VersionStatus = &dtos.VersionStatusOutput{
+					Version:          statusVersion.Version,
+					Status:           c.statusMapper.MapStatus(statusVersion.VersionStatus.String),
+					RepositoryStatus: statusVersion.VersionStatus.String,
+					IndexedDate:      statusVersion.IndexedDate.String,
+				}
+				if statusVersion.VersionStatusChangeDate.String != "" {
+					output.VersionStatus.StatusChangeDate = statusVersion.VersionStatusChangeDate.String
+				}
 			}
-
 			if statComponent.StatusChangeDate.String != "" {
 				output.ComponentStatus.StatusChangeDate = statComponent.StatusChangeDate.String
 			}

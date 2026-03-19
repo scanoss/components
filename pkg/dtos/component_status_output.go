@@ -48,8 +48,8 @@ type ComponentsStatusOutput struct {
 func ExportComponentStatusOutput(s *zap.SugaredLogger, output ComponentStatusOutput) ([]byte, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
-		s.Errorf("Parse failure: %v", err)
-		return nil, errors.New("failed to produce JSON ")
+		s.Errorf("Marshal failure: %v", err)
+		return nil, errors.New("failed to produce JSON")
 	}
 	return data, nil
 }

@@ -93,8 +93,6 @@ type ServerConfig struct {
 	}
 	// StatusMapper is the compiled status mapper (initialized once at startup)
 	statusMapper *StatusMapper
-	// rawConfig stores the raw config for post-processing
-	rawConfig map[string]interface{}
 }
 
 // NewServerConfig loads all config options and return a struct for use

@@ -29,7 +29,7 @@ DB_SCHEMA=scanoss
 DB_SSL_MODE=disable
 DB_DSN=
 ```
-## Satus mapping
+## Status mapping
 User can define custom status mapping using `STATUS_MAPPING` variable (JSON format)
 
 ``` bash

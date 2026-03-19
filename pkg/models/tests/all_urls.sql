@@ -9122,7 +9122,7 @@ insert into all_urls (package_hash, vendor, component, version, date, url, url_h
 -- Update rows that don't have indexed_date, version_status, and version_status_change_date
 -- This fixes compatibility with go-models v0.7.0+ that expects these columns
 UPDATE all_urls 
-SET indexed_date = COALESCE(indexed_date, date, '2020-01-01'),
+SET indexed_date = COALESCE(indexed_date, date, '1970-01-01'),
     version_status = COALESCE(version_status, 'active'),
-    version_status_change_date = COALESCE(version_status_change_date, date, '2020-01-01')
+    version_status_change_date = COALESCE(version_status_change_date, date, '1970-01-01')
 WHERE indexed_date IS NULL OR version_status IS NULL OR version_status_change_date IS NULL;
