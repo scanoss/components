@@ -1,4 +1,6 @@
-
+## Constants
+# Linter version
+LINT_VERSION := v2.10.1
 #vars
 IMAGE_NAME=scanoss-components
 REPO=scanoss
@@ -39,7 +41,10 @@ lint_local_fix: ## Run local instance of linting across the code base including 
 	golangci-lint run --fix ./...
 
 lint_docker: ## Run docker instance of linting across the code base
-	docker run --rm -v $(pwd):/app -v ~/.cache/golangci-lint/v1.50.1:/root/.cache -w /app golangci/golangci-lint:v1.50.1 golangci-lint run ./...
+	docker run --rm -v $(PWD):/app -v ~/.cache/golangci-lint/$(LINT_VERSION):/root/.cache -w /app golangci/golangci-lint:$(LINT_VERSION) golangci-lint run ./...
+
+lint_docker_fix: ## Run docker instance of linting across the code base auto-fixing
+	docker run --rm -v $(pwd):/app -v ~/.cache/golangci-lint/v1.50.1:/root/.cache -w /app golangci/golangci-lint:v1.50.1 golangci-lint run --fix ./...
 
 run_local:  ## Launch the API locally for test
 	@echo "Launching API locally..."
