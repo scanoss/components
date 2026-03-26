@@ -19,6 +19,8 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
@@ -27,7 +29,6 @@ import (
 	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/dtos"
 	"scanoss.com/components/pkg/models"
-	"testing"
 )
 
 func TestComponentUseCase_SearchComponents(t *testing.T) {
@@ -48,7 +49,7 @@ func TestComponentUseCase_SearchComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil, nil)
+	myConfig, err := myconfig.NewServerConfig(nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -106,7 +107,7 @@ func TestComponentUseCase_GetComponentVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil, nil)
+	myConfig, err := myconfig.NewServerConfig(nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -170,7 +171,7 @@ func TestComponentUseCase_GetComponentStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil, nil)
+	myConfig, err := myconfig.NewServerConfig(nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -237,7 +238,7 @@ func TestComponentUseCase_GetComponentsStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil, nil)
+	myConfig, err := myconfig.NewServerConfig(nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -304,7 +305,7 @@ func TestComponentUseCase_GetComponentStatus_AllCases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil, nil)
+	myConfig, err := myconfig.NewServerConfig(nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -427,4 +428,3 @@ func TestComponentUseCase_GetComponentStatus_AllCases(t *testing.T) {
 		})
 	}
 }
-

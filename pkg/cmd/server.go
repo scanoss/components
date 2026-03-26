@@ -21,6 +21,10 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
 	_ "github.com/lib/pq"
@@ -30,16 +34,13 @@ import (
 	gomodels "github.com/scanoss/go-models/pkg/models"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	_ "modernc.org/sqlite"
-	"net/http"
-	"os"
 	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/protocol/grpc"
 	"scanoss.com/components/pkg/protocol/rest"
 	"scanoss.com/components/pkg/service"
-	"strings"
 )
 
-//TODO: Now the config includes the app version. 
+//TODO: Now the config includes the app version.
 //  This might be worth moving to the file pkg/config/server_config.go
 
 //go:generate bash ../../get_version.sh
@@ -74,21 +75,17 @@ func getConfig() (*myconfig.ServerConfig, error) {
 			return nil, err
 		}
 	}
-
-	// Phase 1: Load config without logger to get logging settings
-	preConfig, err := myconfig.NewServerConfig(feeders, nil)
+	myConfig, err := myconfig.NewServerConfig(feeders)
 	if err != nil {
 		return nil, err
 	}
-
 	// Initialize the application logger
-	err = zlog.SetupAppLogger(preConfig.App.Mode, preConfig.Logging.ConfigFile, preConfig.App.Debug)
+	err = zlog.SetupAppLogger(myConfig.App.Mode, myConfig.Logging.ConfigFile, myConfig.App.Debug)
 	if err != nil {
 		return nil, err
 	}
-
-	// Phase 2: Reload config with initialized logger for StatusMapper
-	myConfig, err := myconfig.NewServerConfig(feeders, zlog.S)
+	// Initialise the status mapping config
+	myConfig.InitStatusMapperConfig(zlog.S)
 	return myConfig, err
 }
 

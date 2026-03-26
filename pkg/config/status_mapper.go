@@ -48,7 +48,9 @@ func NewStatusMapper(s *zap.SugaredLogger, mappingConfig interface{}) *StatusMap
 		for key, value := range customMapping {
 			mapper.mapping[strings.ToLower(key)] = value
 		}
-		s.Infof("Loaded custom status mapping with %d entries", len(customMapping))
+		if s != nil {
+			s.Infof("Loaded custom status mapping with %d entries", len(customMapping))
+		}
 	}
 
 	return mapper
@@ -67,7 +69,9 @@ func parseMappingConfig(s *zap.SugaredLogger, mappingConfig interface{}) map[str
 		// Direct map format
 		return v
 	default:
-		s.Warnf("Unexpected mapping config type: %T, using defaults", mappingConfig)
+		if s != nil {
+			s.Warnf("Unexpected mapping config type: %T, using defaults", mappingConfig)
+		}
 		return nil
 	}
 }
@@ -80,7 +84,9 @@ func parseJSONString(s *zap.SugaredLogger, jsonStr string) map[string]string {
 	var result map[string]string
 	err := json.Unmarshal([]byte(jsonStr), &result)
 	if err != nil {
-		s.Warnf("Failed to parse STATUS_MAPPING JSON string, using defaults: %v", err)
+		if s != nil {
+			s.Warnf("Failed to parse STATUS_MAPPING JSON string, using defaults: %v", err)
+		}
 		return nil
 	}
 	return result
@@ -93,7 +99,9 @@ func convertInterfaceMap(s *zap.SugaredLogger, m map[string]interface{}) map[str
 		if strValue, ok := value.(string); ok {
 			result[key] = strValue
 		} else {
-			s.Warnf("Skipping non-string value for key %q: %v (type: %T)", key, value, value)
+			if s != nil {
+				s.Warnf("Skipping non-string value for key %q: %v (type: %T)", key, value, value)
+			}
 		}
 	}
 	return result
@@ -105,12 +113,12 @@ func (m *StatusMapper) MapStatus(dbStatus string) string {
 	if dbStatus == "" {
 		return ""
 	}
-	// Normalize to lowercase for lookup
+	// Normalise to lowercase for lookup
 	normalized := strings.ToLower(strings.TrimSpace(dbStatus))
 	if mapped, exists := m.mapping[normalized]; exists {
 		return mapped
 	}
-	// If no mapping exists, return original value
+	// If no mapping exists, return the original value
 	return dbStatus
 }
 

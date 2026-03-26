@@ -18,10 +18,11 @@ package config
 
 import (
 	"fmt"
-	"github.com/golobby/config/v3"
-	"github.com/golobby/config/v3/pkg/feeder"
 	"os"
 	"testing"
+
+	"github.com/golobby/config/v3"
+	"github.com/golobby/config/v3/pkg/feeder"
 )
 
 // TestServerConfig verifies that NewServerConfig can load configuration from environment variables.
@@ -35,7 +36,7 @@ func TestServerConfig(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when creating new config instance", err)
 	}
 	// Load config with nil feeders and nil logger (uses env vars and fallback logger)
-	cfg, err := NewServerConfig(nil, nil)
+	cfg, err := NewServerConfig(nil)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when creating new config instance", err)
 	}
@@ -61,7 +62,7 @@ func TestServerConfigDotEnv(t *testing.T) {
 	dbUser := "env-user"
 	var feeders []config.Feeder
 	feeders = append(feeders, feeder.DotEnv{Path: "tests/dot-env"})
-	cfg, err := NewServerConfig(feeders, nil)
+	cfg, err := NewServerConfig(feeders)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when creating new config instance", err)
 	}
@@ -81,7 +82,7 @@ func TestServerConfigJson(t *testing.T) {
 	dbUser := "json-user"
 	var feeders []config.Feeder
 	feeders = append(feeders, feeder.Json{Path: "tests/env.json"})
-	cfg, err := NewServerConfig(feeders, nil)
+	cfg, err := NewServerConfig(feeders)
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when creating new config instance", err)
 	}

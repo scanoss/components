@@ -21,6 +21,7 @@ import (
 
 	"github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
+	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -44,7 +45,7 @@ func parseStatusMappingString(s string) interface{} {
 	return s
 }
 
-// ServerConfig is configuration for Server.
+// ServerConfig is a configuration for Server.
 type ServerConfig struct {
 	App struct {
 		Name           string `env:"APP_NAME"`
@@ -94,9 +95,7 @@ type ServerConfig struct {
 }
 
 // NewServerConfig loads all config options and return a struct for use.
-// If logger is nil, uses zap.S() to get the global sugared logger.
-// For production use, pass an initialized logger after calling zlog.SetupAppLogger().
-func NewServerConfig(feeders []config.Feeder, logger *zap.SugaredLogger) (*ServerConfig, error) {
+func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
 	cfg := ServerConfig{}
 	setServerConfigDefaults(&cfg)
 	c := config.New()
@@ -109,11 +108,6 @@ func NewServerConfig(feeders []config.Feeder, logger *zap.SugaredLogger) (*Serve
 	if err != nil {
 		return nil, err
 	}
-	// Initialise the status mapper once at startup
-	if logger == nil {
-		logger = zap.S() // Fallback to global sugared logger
-	}
-	cfg.statusMapper = NewStatusMapper(logger, parseStatusMappingString(cfg.StatusMapping.Mapping))
 	return &cfg, nil
 }
 
@@ -137,7 +131,16 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.Telemetry.OltpExporter = "0.0.0.0:4317" // Default OTEL OLTP gRPC Exporter endpoint
 }
 
+// InitStatusMapperConfig initialise the status mapper for mapping component statuses
+func (cfg *ServerConfig) InitStatusMapperConfig(s *zap.SugaredLogger) {
+	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.StatusMapping.Mapping))
+}
+
 // GetStatusMapper returns the status mapper for mapping database statuses to classified statuses.
 func (cfg *ServerConfig) GetStatusMapper() *StatusMapper {
+	// Initialise the mapper if it wasn't done previously
+	if cfg.statusMapper == nil {
+		cfg.InitStatusMapperConfig(zlog.S)
+	}
 	return cfg.statusMapper
 }
