@@ -19,6 +19,8 @@ package models
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
@@ -26,7 +28,6 @@ import (
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	_ "modernc.org/sqlite"
 	myconfig "scanoss.com/components/pkg/config"
-	"testing"
 )
 
 func TestDbLoad(t *testing.T) {
@@ -74,8 +75,6 @@ func TestRunQueriesInParallel(t *testing.T) {
 	s := ctxzap.Extract(ctx).Sugar()
 	db := sqliteSetup(t) // Setup SQL Lite DB
 	defer CloseDB(db)
-	//conn := sqliteConn(t, ctx, db) // Get a connection from the pool
-	//defer CloseConn(conn)
 	err = LoadTestSQLData(db, ctx, nil)
 	if err != nil {
 		t.Fatalf("failed to load SQL test data: %v", err)

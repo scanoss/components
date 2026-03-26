@@ -185,7 +185,7 @@ func (c ComponentUseCase) handleComponentStatusResult(request dtos.ComponentStat
 func (c ComponentUseCase) handleSuccessStatus(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
 	statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(result.Purl)
 	if errComp != nil {
-		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("Error retrieving Component level data", errors.New("Error retrieving Component Level Data"))
+		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("error retrieving Component level data", errors.New("error retrieving Component Level Data"))
 	}
 	output := dtos.ComponentStatusOutput{
 		Purl:            request.Purl,
@@ -205,7 +205,7 @@ func (c ComponentUseCase) handleSuccessStatus(request dtos.ComponentStatusInput,
 func (c ComponentUseCase) handleVersionNotFound(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
 	statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(result.Purl)
 	if errComp != nil {
-		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("Error retrieving information", errors.New("Error retrieving information"))
+		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("error retrieving information", errors.New("error retrieving information"))
 	}
 	return dtos.ComponentStatusOutput{
 		Purl:        request.Purl,

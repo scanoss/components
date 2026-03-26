@@ -110,14 +110,14 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 	requestStartTime := time.Now() // Capture the scan start time
 	s := ctxzap.Extract(ctx).Sugar()
 	s.Info("Processing component versions request...")
-	//Verify the input request
+	// Verify the input request
 	if len(request.Purl) == 0 {
 		status := se.HandleServiceError(ctx, s, se.NewBadRequestError("No purl supplied", nil))
 		status.Db = d.getDBVersion()
 		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
 		return &pb.CompVersionResponse{Status: status}, nil
 	}
-	//Convert the request to internal DTO
+	// Convert the request to internal DTO
 	dtoRequest, err := convertCompVersionsInput(s, request)
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)

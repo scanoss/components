@@ -30,7 +30,7 @@ const (
 )
 
 // parseStatusMappingString converts a string to interface{} for StatusMapper
-// It handles both JSON object format (from config file) and JSON string format (from env var)
+// It handles both JSON object format (from config file) and JSON string format (from env var).
 func parseStatusMappingString(s string) interface{} {
 	if s == "" {
 		return nil
@@ -44,7 +44,7 @@ func parseStatusMappingString(s string) interface{} {
 	return s
 }
 
-// ServerConfig is configuration for Server
+// ServerConfig is configuration for Server.
 type ServerConfig struct {
 	App struct {
 		Name           string `env:"APP_NAME"`
@@ -117,7 +117,7 @@ func NewServerConfig(feeders []config.Feeder, logger *zap.SugaredLogger) (*Serve
 	return &cfg, nil
 }
 
-// setServerConfigDefaults attempts to set reasonable defaults for the server config
+// setServerConfigDefaults attempts to set reasonable defaults for the server config.
 func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.App.Name = "SCANOSS Component Server"
 	cfg.App.GRPCPort = defaultGrpcPort
@@ -137,7 +137,7 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.Telemetry.OltpExporter = "0.0.0.0:4317" // Default OTEL OLTP gRPC Exporter endpoint
 }
 
-// GetStatusMapper returns the status mapper for mapping database statuses to classified statuses
+// GetStatusMapper returns the status mapper for mapping database statuses to classified statuses.
 func (cfg *ServerConfig) GetStatusMapper() *StatusMapper {
 	return cfg.statusMapper
 }

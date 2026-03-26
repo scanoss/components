@@ -33,7 +33,10 @@ func TestServerConfig_StatusMapping_FromEnv(t *testing.T) {
 	}
 	defer zlog.SyncZap()
 	envValue := `{"unlisted":"custom-removed","yanked":"custom-yanked"}`
-	os.Setenv("STATUS_MAPPING", envValue)
+	errEnv := os.Setenv("STATUS_MAPPING", envValue)
+	if errEnv != nil {
+		t.Fatalf("Could not set env variable: %v", errEnv)
+	}
 	defer os.Unsetenv("STATUS_MAPPING")
 	cfg, err := NewServerConfig(nil, nil)
 	if err != nil {
@@ -69,7 +72,10 @@ func TestServerConfig_StatusMapping_DefaultWhenNotSet(t *testing.T) {
 		t.Fatalf("Failed to initialise logger: %v", err)
 	}
 	defer zlog.SyncZap()
-	os.Unsetenv("STATUS_MAPPING")
+	errEnv := os.Unsetenv("STATUS_MAPPING")
+	if errEnv != nil {
+		t.Fatalf("Could not set env variable: %v", errEnv)
+	}
 	cfg, err := NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -102,7 +108,10 @@ func TestServerConfig_StatusMapping_WithProvidedLogger(t *testing.T) {
 	}
 	defer zlog.SyncZap()
 	envValue := `{"test-status":"test-mapped"}`
-	os.Setenv("STATUS_MAPPING", envValue)
+	errEnv := os.Setenv("STATUS_MAPPING", envValue)
+	if errEnv != nil {
+		t.Fatalf("Could not set env variable: %v", errEnv)
+	}
 	defer os.Unsetenv("STATUS_MAPPING")
 	cfg, err := NewServerConfig(nil, zlog.S)
 	if err != nil {

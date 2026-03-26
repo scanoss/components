@@ -232,10 +232,14 @@ func convertComponentsStatusInput(s *zap.SugaredLogger, request interface{}) (dt
 func convertComponentsStatusOutput(s *zap.SugaredLogger, output dtos.ComponentsStatusOutput) (*pb.ComponentsStatusResponse, error) {
 
 	var statusResp pb.ComponentsStatusResponse
+	var someErr error = nil
 	for _, c := range output.Components {
-		cs, _ := convertComponentStatusOutput(s, c)
+		cs, errComp := convertComponentStatusOutput(s, c)
+		if errComp != nil {
+			someErr = errComp
+		}
 		statusResp.Components = append(statusResp.Components, cs)
 	}
 
-	return &statusResp, nil
+	return &statusResp, someErr
 }

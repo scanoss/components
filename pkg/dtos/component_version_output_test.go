@@ -3,10 +3,11 @@ package dtos
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
-	"testing"
 )
 
 func TestParseComponentVersionsOutput(t *testing.T) {
@@ -91,9 +92,7 @@ func TestParseComponentVersionsOutput(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error for empty input")
 	}
-
 }
-
 func TestExportComponentVersionsOutput(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -142,5 +141,4 @@ func TestExportComponentVersionsOutput(t *testing.T) {
 		t.Errorf("dtos.ExportComponentVersionsOutput() error = %v", err)
 	}
 	fmt.Println("Exported output data: ", data)
-
 }
