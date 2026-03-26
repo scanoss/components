@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2018-2022 SCANOSS.COM
+ * Copyright (C) 2018-2026 SCANOSS.COM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,13 +35,11 @@ func parseStatusMappingString(s string) interface{} {
 	if s == "" {
 		return nil
 	}
-
 	// Try to unmarshal as map first (JSON object from config file)
 	var m map[string]interface{}
 	if err := json.Unmarshal([]byte(s), &m); err == nil {
 		return m
 	}
-
 	// Otherwise return as string (JSON string from env var)
 	return s
 }
@@ -91,12 +89,14 @@ type ServerConfig struct {
 	StatusMapping struct {
 		Mapping string `env:"STATUS_MAPPING"` // JSON string mapping DB statuses to classified statuses (from env or file)
 	}
-	// StatusMapper is the compiled status mapper (initialized once at startup)
+	// StatusMapper is the compiled status mapper (initialised once at startup)
 	statusMapper *StatusMapper
 }
 
-// NewServerConfig loads all config options and return a struct for use
-func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
+// NewServerConfig loads all config options and return a struct for use.
+// If logger is nil, uses zap.S() to get the global sugared logger.
+// For production use, pass an initialized logger after calling zlog.SetupAppLogger().
+func NewServerConfig(feeders []config.Feeder, logger *zap.SugaredLogger) (*ServerConfig, error) {
 	cfg := ServerConfig{}
 	setServerConfigDefaults(&cfg)
 	c := config.New()
@@ -109,11 +109,11 @@ func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Initialize the status mapper once at startup
-	s := zap.S() // Get global sugared logger
-	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.StatusMapping.Mapping))
-
+	// Initialise the status mapper once at startup
+	if logger == nil {
+		logger = zap.S() // Fallback to global sugared logger
+	}
+	cfg.statusMapper = NewStatusMapper(logger, parseStatusMappingString(cfg.StatusMapping.Mapping))
 	return &cfg, nil
 }
 

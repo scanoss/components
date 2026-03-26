@@ -1,8 +1,6 @@
 module scanoss.com/components
 
-go 1.24.4
-
-toolchain go1.24.6
+go 1.25.0
 
 require (
 	github.com/golobby/config/v3 v3.4.2

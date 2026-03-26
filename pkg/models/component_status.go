@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2018-2022 SCANOSS.COM
+ * Copyright (C) 2018-2026 SCANOSS.COM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,29 +68,24 @@ func (m *ComponentStatusModel) GetComponentStatusByPurlAndVersion(purlString, ve
 		m.s.Errorf("Please specify a valid Purl String to query")
 		return nil, errors.New("please specify a valid Purl String to query")
 	}
-
 	purl, err := purlhelper.PurlFromString(purlString)
 	if err != nil {
 		return nil, err
 	}
-
 	purlName, err := purlhelper.PurlNameFromString(purlString)
 	if err != nil {
 		return nil, err
 	}
-
 	var status ComponentVersionStatus
-
 	// Query to get both version and component status
 	query := `
-	select distinct  au.purl_name, au."version",  au.indexed_date,  au.version_status,  au.version_status_change_date 
-	from 
-	 all_urls au,
-	 mines m
-	where
-		au.mine_id = m.id  and au.purl_name = $1  and m.purl_type = $2  and au."version" = $3 
+	SELECT DISTINCT  au.purl_name, au."version",  au.indexed_date,  au.version_status,  au.version_status_change_date 
+	FROM 
+	 	all_urls au,
+	 	mines m
+	WHERE
+		au.mine_id = m.id AND au.purl_name = $1 AND m.purl_type = $2 AND au."version" = $3 
 	`
-
 	var results []ComponentVersionStatus
 	err = m.q.SelectContext(m.ctx, &results, query, purlName, purl.Type, version)
 	if err != nil {
@@ -102,7 +97,6 @@ func (m *ComponentStatusModel) GetComponentStatusByPurlAndVersion(purlString, ve
 		return nil, fmt.Errorf("component version not found")
 	}
 	status = results[0]
-
 	m.s.Debugf("Found status for %v version %v", purlName, version)
 	return &status, nil
 }
@@ -113,36 +107,31 @@ func (m *ComponentStatusModel) GetComponentStatusByPurl(purlString string) (*Com
 		m.s.Errorf("Please specify a valid Purl String to query")
 		return nil, errors.New("please specify a valid Purl String to query")
 	}
-
 	purl, err := purlhelper.PurlFromString(purlString)
 	if err != nil {
 		return nil, err
 	}
-
 	purlName, err := purlhelper.PurlNameFromString(purlString)
 	if err != nil {
 		return nil, err
 	}
-
 	var status ComponentProjectStatus
-
 	// Query to get both version and component status for the latest version
 	query := `
-	select distinct
-	p.component,
-  	p.first_indexed_date,
- 	p.last_indexed_date ,
- 	p.status,
- 	p.status_change_date
-	from
- 	projects p,
- 	mines m
-	where
- 	p.mine_id = m.id
- 	and p.purl_name = $1
- 	and m.purl_type = $2;
+	SELECT DISTINCT
+		p.component,
+  		p.first_indexed_date,
+ 		p.last_indexed_date ,
+ 		p.status,
+ 		p.status_change_date
+	FROM
+ 		projects p,
+ 		mines m
+	WHERE
+ 		p.mine_id = m.id
+ 		AND p.purl_name = $1
+ 		AND m.purl_type = $2;
 	`
-
 	var results []ComponentProjectStatus
 	err = m.q.SelectContext(m.ctx, &results, query, purlName, purl.Type)
 	if err != nil {
@@ -154,7 +143,6 @@ func (m *ComponentStatusModel) GetComponentStatusByPurl(purlString string) (*Com
 		return nil, fmt.Errorf("component not found")
 	}
 	status = results[0]
-
 	m.s.Debugf("Found status for %v", purlName)
 	return &status, nil
 }
@@ -165,22 +153,17 @@ func (m *ComponentStatusModel) GetProjectStatusByPurl(purlString string) (*Compo
 		m.s.Errorf("Please specify a valid Purl String to query")
 		return nil, errors.New("please specify a valid Purl String to query")
 	}
-
 	purl, err := purlhelper.PurlFromString(purlString)
 	if err != nil {
 		return nil, err
 	}
-
 	purlName, err := purlhelper.PurlNameFromString(purlString)
 	if err != nil {
 		return nil, err
 	}
-
 	var status ComponentProjectStatus
-
 	query := `
 		SELECT DISTINCT
-		
 			p.purl_name,
 			p.component,
 			p.first_indexed_date,
@@ -193,7 +176,6 @@ func (m *ComponentStatusModel) GetProjectStatusByPurl(purlString string) (*Compo
 			AND m.purl_type = $2
 		LIMIT 1
 	`
-
 	var results []ComponentProjectStatus
 	err = m.q.SelectContext(m.ctx, &results, query, purlName, purl.Type)
 	if err != nil {
@@ -205,7 +187,6 @@ func (m *ComponentStatusModel) GetProjectStatusByPurl(purlString string) (*Compo
 		return nil, fmt.Errorf("component not found")
 	}
 	status = results[0]
-
 	m.s.Debugf("Found project status for %v", purlName)
 	return &status, nil
 }

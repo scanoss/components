@@ -23,90 +23,97 @@ import (
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 )
 
+// TestServerConfig_StatusMapping_FromEnv verifies that custom status mappings can be loaded from environment variables.
+// Tests that STATUS_MAPPING env var is correctly parsed as JSON and applied to the StatusMapper.
+// Verifies both custom mappings and default fallback behavior for non-overridden keys.
 func TestServerConfig_StatusMapping_FromEnv(t *testing.T) {
-	// Initialize logger
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
-		t.Fatalf("Failed to initialize logger: %v", err)
+		t.Fatalf("Failed to initialise logger: %v", err)
 	}
 	defer zlog.SyncZap()
-
-	// Set environment variable
 	envValue := `{"unlisted":"custom-removed","yanked":"custom-yanked"}`
 	os.Setenv("STATUS_MAPPING", envValue)
 	defer os.Unsetenv("STATUS_MAPPING")
-
-	// Load config
-	cfg, err := NewServerConfig(nil)
+	cfg, err := NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
-
-	// Verify status mapper was initialized
 	if cfg.statusMapper == nil {
-		t.Fatal("Expected statusMapper to be initialized")
+		t.Fatal("Expected statusMapper to be initialised")
 	}
-
-	// Test that custom mappings work
 	mapper := cfg.GetStatusMapper()
 	if mapper == nil {
 		t.Fatal("Expected non-nil mapper from GetStatusMapper()")
 	}
-
-	// Test custom mapping
 	result := mapper.MapStatus("unlisted")
 	if result != "custom-removed" {
 		t.Errorf("Expected 'custom-removed', got %q", result)
 	}
-
 	result = mapper.MapStatus("yanked")
 	if result != "custom-yanked" {
 		t.Errorf("Expected 'custom-yanked', got %q", result)
 	}
-
-	// Test default mapping still works for non-overridden keys
 	result = mapper.MapStatus("deleted")
 	if result != "deleted" {
 		t.Errorf("Expected 'deleted', got %q", result)
 	}
 }
 
+// TestServerConfig_StatusMapping_DefaultWhenNotSet verifies that default status mappings are used when STATUS_MAPPING is not configured.
+// Tests that StatusMapper initializes correctly with built-in default mappings.
+// Ensures default behavior when no custom configuration is provided.
 func TestServerConfig_StatusMapping_DefaultWhenNotSet(t *testing.T) {
-	// Initialize logger
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
-		t.Fatalf("Failed to initialize logger: %v", err)
+		t.Fatalf("Failed to initialise logger: %v", err)
 	}
 	defer zlog.SyncZap()
-
-	// Make sure STATUS_MAPPING is not set
 	os.Unsetenv("STATUS_MAPPING")
-
-	// Load config
-	cfg, err := NewServerConfig(nil)
+	cfg, err := NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
-
-	// Verify status mapper was initialized with defaults
 	mapper := cfg.GetStatusMapper()
 	if mapper == nil {
 		t.Fatal("Expected non-nil mapper from GetStatusMapper()")
 	}
-
-	// Test default mappings
 	result := mapper.MapStatus("unlisted")
 	if result != "removed" {
 		t.Errorf("Expected 'removed', got %q", result)
 	}
-
 	result = mapper.MapStatus("yanked")
 	if result != "removed" {
 		t.Errorf("Expected 'removed', got %q", result)
 	}
-
 	result = mapper.MapStatus("active")
 	if result != "active" {
 		t.Errorf("Expected 'active', got %q", result)
+	}
+}
+
+// TestServerConfig_StatusMapping_WithProvidedLogger verifies that StatusMapper receives and uses an explicitly provided logger.
+// Simulates production usage where logger is initialized before config loading (two-phase initialization).
+// Tests that custom mappings work correctly when passing an initialized logger to NewServerConfig.
+func TestServerConfig_StatusMapping_WithProvidedLogger(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("Failed to initialise logger: %v", err)
+	}
+	defer zlog.SyncZap()
+	envValue := `{"test-status":"test-mapped"}`
+	os.Setenv("STATUS_MAPPING", envValue)
+	defer os.Unsetenv("STATUS_MAPPING")
+	cfg, err := NewServerConfig(nil, zlog.S)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	mapper := cfg.GetStatusMapper()
+	if mapper == nil {
+		t.Fatal("Expected non-nil mapper from GetStatusMapper()")
+	}
+	result := mapper.MapStatus("test-status")
+	if result != "test-mapped" {
+		t.Errorf("Expected 'test-mapped', got %q", result)
 	}
 }

@@ -80,7 +80,7 @@ func TestRunQueriesInParallel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load SQL test data: %v", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}

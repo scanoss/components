@@ -44,7 +44,7 @@ func TestComponentServer_Echo(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer models.CloseDB(db)
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestComponentServer_GetComponentStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}

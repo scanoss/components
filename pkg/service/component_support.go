@@ -28,6 +28,15 @@ func setupMetrics() {
 	oltpMetrics.compVersionHistogram, _ = meter.Int64Histogram("comp.versions.req_time", metric.WithDescription("The time taken to run a comp versions request (ms)"))
 }
 
+// convertSearchComponentInput converts a gRPC CompSearchRequest into a ComponentSearchInput DTO.
+// It marshals the gRPC request to JSON and then unmarshals it into the internal DTO format.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - request: gRPC component search request
+//
+// Returns:
+//   - ComponentSearchInput DTO or BadRequestError if conversion fails
 func convertSearchComponentInput(s *zap.SugaredLogger, request *pb.CompSearchRequest) (dtos.ComponentSearchInput, error) {
 	data, err := json.Marshal(request)
 	if err != nil {
@@ -40,6 +49,15 @@ func convertSearchComponentInput(s *zap.SugaredLogger, request *pb.CompSearchReq
 	return dtoRequest, nil
 }
 
+// convertSearchComponentOutput converts a ComponentsSearchOutput DTO into a gRPC CompSearchResponse.
+// It marshals the DTO to JSON and then unmarshals it into the gRPC response format.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - output: ComponentsSearchOutput DTO containing search results
+//
+// Returns:
+//   - gRPC CompSearchResponse or error if conversion fails
 func convertSearchComponentOutput(s *zap.SugaredLogger, output dtos.ComponentsSearchOutput) (*pb.CompSearchResponse, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
@@ -55,6 +73,15 @@ func convertSearchComponentOutput(s *zap.SugaredLogger, output dtos.ComponentsSe
 	return &compResp, nil
 }
 
+// convertCompVersionsInput converts a gRPC CompVersionRequest into a ComponentVersionsInput DTO.
+// It marshals the gRPC request to JSON and then unmarshals it into the internal DTO format.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - request: gRPC component version request
+//
+// Returns:
+//   - ComponentVersionsInput DTO or BadRequestError if conversion fails
 func convertCompVersionsInput(s *zap.SugaredLogger, request *pb.CompVersionRequest) (dtos.ComponentVersionsInput, error) {
 	data, err := json.Marshal(request)
 	if err != nil {
@@ -67,6 +94,15 @@ func convertCompVersionsInput(s *zap.SugaredLogger, request *pb.CompVersionReque
 	return dtoRequest, nil
 }
 
+// convertCompVersionsOutput converts a ComponentVersionsOutput DTO into a gRPC CompVersionResponse.
+// It marshals the DTO to JSON and then unmarshals it into the gRPC response format.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - output: ComponentVersionsOutput DTO containing component version data
+//
+// Returns:
+//   - gRPC CompVersionResponse or error if conversion fails
 func convertCompVersionsOutput(s *zap.SugaredLogger, output dtos.ComponentVersionsOutput) (*pb.CompVersionResponse, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
@@ -82,6 +118,16 @@ func convertCompVersionsOutput(s *zap.SugaredLogger, output dtos.ComponentVersio
 	return &compResp, nil
 }
 
+// convertComponentStatusInput converts a gRPC component status request into a ComponentStatusInput DTO.
+// It accepts an interface{} to support both REST and gRPC request formats.
+// It marshals the request to JSON and then unmarshals it into the internal DTO format.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - request: Generic request interface (gRPC or REST format)
+//
+// Returns:
+//   - ComponentStatusInput DTO or BadRequestError if conversion fails
 func convertComponentStatusInput(s *zap.SugaredLogger, request interface{}) (dtos.ComponentStatusInput, error) {
 	data, err := json.Marshal(request)
 	if err != nil {
@@ -94,6 +140,16 @@ func convertComponentStatusInput(s *zap.SugaredLogger, request interface{}) (dto
 	return dtoRequest, nil
 }
 
+// convertComponentStatusOutput converts a ComponentStatusOutput DTO into a gRPC ComponentStatusResponse.
+// It manually constructs the gRPC response structure, handling both success and error cases.
+// The function handles optional fields like StatusChangeDate and VersionStatus appropriately.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - output: ComponentStatusOutput DTO containing component and version status data
+//
+// Returns:
+//   - gRPC ComponentStatusResponse with populated fields, or error if conversion fails
 func convertComponentStatusOutput(s *zap.SugaredLogger, output dtos.ComponentStatusOutput) (*pb.ComponentStatusResponse, error) {
 
 	response := &pb.ComponentStatusResponse{
@@ -141,6 +197,16 @@ func convertComponentStatusOutput(s *zap.SugaredLogger, output dtos.ComponentSta
 	return response, nil
 }
 
+// convertComponentsStatusInput converts a gRPC components status request into a ComponentsStatusInput DTO.
+// It accepts an interface{} to support both REST and gRPC request formats for batch status requests.
+// It marshals the request to JSON and then unmarshals it into the internal DTO format.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - request: Generic request interface (gRPC or REST format) containing multiple component status requests
+//
+// Returns:
+//   - ComponentsStatusInput DTO or BadRequestError if conversion fails
 func convertComponentsStatusInput(s *zap.SugaredLogger, request interface{}) (dtos.ComponentsStatusInput, error) {
 	data, err := json.Marshal(request)
 	if err != nil {
@@ -153,6 +219,16 @@ func convertComponentsStatusInput(s *zap.SugaredLogger, request interface{}) (dt
 	return dtoRequest, nil
 }
 
+// convertComponentsStatusOutput converts a ComponentsStatusOutput DTO into a gRPC ComponentsStatusResponse.
+// It iterates through multiple component status results and converts each one using convertComponentStatusOutput.
+// This function handles batch status responses for multiple components.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - output: ComponentsStatusOutput DTO containing multiple component status results
+//
+// Returns:
+//   - gRPC ComponentsStatusResponse with all converted component status entries, or error if conversion fails
 func convertComponentsStatusOutput(s *zap.SugaredLogger, output dtos.ComponentsStatusOutput) (*pb.ComponentsStatusResponse, error) {
 
 	var statusResp pb.ComponentsStatusResponse

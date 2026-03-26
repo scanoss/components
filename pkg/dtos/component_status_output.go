@@ -45,6 +45,14 @@ type ComponentsStatusOutput struct {
 	Components []ComponentStatusOutput `json:"components"`
 }
 
+// ExportComponentStatusOutput marshals a ComponentStatusOutput struct to JSON bytes.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - output: ComponentStatusOutput struct to be marshaled
+//
+// Returns:
+//   - JSON byte array representation of the output, or error if marshaling fails
 func ExportComponentStatusOutput(s *zap.SugaredLogger, output ComponentStatusOutput) ([]byte, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
@@ -54,6 +62,14 @@ func ExportComponentStatusOutput(s *zap.SugaredLogger, output ComponentStatusOut
 	return data, nil
 }
 
+// ParseComponentStatusOutput unmarshals JSON bytes into a ComponentStatusOutput struct.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - output: JSON byte array to be unmarshaled
+//
+// Returns:
+//   - ComponentStatusOutput struct populated from JSON, or error if unmarshaling fails or input is empty
 func ParseComponentStatusOutput(s *zap.SugaredLogger, output []byte) (ComponentStatusOutput, error) {
 	if len(output) == 0 {
 		return ComponentStatusOutput{}, errors.New("no data supplied to parse")
@@ -67,15 +83,32 @@ func ParseComponentStatusOutput(s *zap.SugaredLogger, output []byte) (ComponentS
 	return data, nil
 }
 
+// ExportComponentsStatusOutput marshals a ComponentsStatusOutput struct (containing multiple components) to JSON bytes.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - output: ComponentsStatusOutput struct containing an array of component statuses
+//
+// Returns:
+//   - JSON byte array representation of the output, or error if marshaling fails
 func ExportComponentsStatusOutput(s *zap.SugaredLogger, output ComponentsStatusOutput) ([]byte, error) {
 	data, err := json.Marshal(output)
 	if err != nil {
-		s.Errorf("Parse failure: %v", err)
-		return nil, errors.New("failed to produce JSON ")
+		s.Errorf("Marshall failure: %v", err)
+		return nil, errors.New("failed to produce JSON")
 	}
 	return data, nil
 }
 
+// ParseComponentsStatusOutput unmarshals JSON bytes into a ComponentsStatusOutput struct.
+// Used for parsing batch component status responses containing multiple components.
+//
+// Parameters:
+//   - s: Sugared logger for error logging
+//   - output: JSON byte array to be unmarshaled
+//
+// Returns:
+//   - ComponentsStatusOutput struct with array of component statuses, or error if unmarshaling fails or input is empty
 func ParseComponentsStatusOutput(s *zap.SugaredLogger, output []byte) (ComponentsStatusOutput, error) {
 	if len(output) == 0 {
 		return ComponentsStatusOutput{}, errors.New("no data supplied to parse")

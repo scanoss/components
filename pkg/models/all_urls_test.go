@@ -18,15 +18,16 @@ package models
 
 import (
 	"context"
+	"testing"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	myconfig "scanoss.com/components/pkg/config"
-	"testing"
 )
 
-// setupTest initializes all necessary components for testing
+// setupTest initialises all necessary components for testing
 func setupTest(t *testing.T) (*sqlx.DB, *sqlx.Conn, *AllUrlsModel) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -41,7 +42,7 @@ func setupTest(t *testing.T) (*sqlx.DB, *sqlx.Conn, *AllUrlsModel) {
 	if err != nil {
 		t.Fatalf("failed to load SQL test data: %v", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}

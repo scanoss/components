@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2018-2022 SCANOSS.COM
+ * Copyright (C) 2018-2026 SCANOSS.COM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,11 +39,9 @@ func NewStatusMapper(s *zap.SugaredLogger, mappingConfig interface{}) *StatusMap
 		s:       s,
 		mapping: getDefaultStatusMapping(),
 	}
-
 	if mappingConfig == nil {
 		return mapper
 	}
-
 	customMapping := parseMappingConfig(s, mappingConfig)
 	if customMapping != nil {
 		// Merge custom mapping with defaults (custom overrides defaults)
@@ -79,7 +77,6 @@ func parseJSONString(s *zap.SugaredLogger, jsonStr string) map[string]string {
 	if len(strings.TrimSpace(jsonStr)) == 0 {
 		return nil
 	}
-
 	var result map[string]string
 	err := json.Unmarshal([]byte(jsonStr), &result)
 	if err != nil {
@@ -108,14 +105,11 @@ func (m *StatusMapper) MapStatus(dbStatus string) string {
 	if dbStatus == "" {
 		return ""
 	}
-
 	// Normalize to lowercase for lookup
 	normalized := strings.ToLower(strings.TrimSpace(dbStatus))
-
 	if mapped, exists := m.mapping[normalized]; exists {
 		return mapped
 	}
-
 	// If no mapping exists, return original value
 	return dbStatus
 }

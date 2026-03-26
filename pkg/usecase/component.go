@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2018-2022 SCANOSS.COM
+ * Copyright (C) 2018-2026 SCANOSS.COM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,7 +59,6 @@ func NewComponents(ctx context.Context, s *zap.SugaredLogger, db *sqlx.DB, q *da
 func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (dtos.ComponentsSearchOutput, error) {
 	var err error
 	var searchResults []models.Component
-
 	if len(request.Search) != 0 {
 		searchResults, err = c.components.GetComponents(request.Search, request.Package, request.Limit, request.Offset)
 	} else if len(request.Component) != 0 && len(request.Vendor) == 0 {
@@ -92,12 +91,10 @@ func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (d
 }
 
 func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInput) (dtos.ComponentVersionsOutput, error) {
-
 	if len(request.Purl) == 0 {
 		c.s.Errorf("The request does not contains purl to retrieve component versions")
 		return dtos.ComponentVersionsOutput{}, errors.New("the request does not contains purl to retrieve component versions")
 	}
-
 	allUrls, err := c.allUrl.GetUrlsByPurlString(request.Purl, request.Limit)
 	if err != nil {
 		c.s.Errorf("Problem encountered gettings URLs versions for: %v - %v.", request.Purl, err)
@@ -107,17 +104,14 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 	if err != nil {
 		c.s.Warnf("Problem encountered generating output component versions for: %v - %v.", request.Purl, err)
 	}
-
 	purlName := purl.Name
 	if purl.Type == "github" {
 		purlName = fmt.Sprintf("%s/%s", purl.Namespace, purl.Name)
 	}
-
 	projectURL, err := purlhelper.ProjectUrl(purlName, purl.Type)
 	if err != nil {
 		c.s.Warnf("Problem generating the project URL: %v - %v.", request.Purl, err)
 	}
-
 	var output dtos.ComponentOutput
 	output.Purl = request.Purl
 	if len(allUrls) > 0 {
@@ -158,7 +152,6 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 		c.s.Errorf("The request does not contain purl to retrieve component status")
 		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("purl is required", errors.New("purl is required"))
 	}
-
 	results := cmpHelper.GetComponentsVersion(cmpHelper.ComponentVersionCfg{
 		MaxWorkers: 1,
 		Ctx:        c.ctx,
@@ -168,103 +161,120 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 			{Purl: request.Purl, Requirement: request.Requirement},
 		},
 	})
-
 	if len(results) > 0 {
-		// Component and Version exists or requirement met
-		switch results[0].Status.StatusCode {
-		case domain.Success:
-			statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(results[0].Purl)
-			if errComp != nil {
-				return dtos.ComponentStatusOutput{}, se.NewBadRequestError("Error retrieving Component level data", errors.New("Error retrieving Component Level Data"))
-			}
-
-			var statusVersion *models.ComponentVersionStatus
-			var errVersion error
-			if len(results[0].Version) > 0 {
-				statusVersion, errVersion = c.componentStatus.GetComponentStatusByPurlAndVersion(request.Purl, results[0].Version)
-			} else if len(results[0].Requirement) > 0 {
-				statusVersion, errVersion = c.componentStatus.GetComponentStatusByPurlAndVersion(request.Purl, results[0].Requirement)
-			}
-			if errVersion != nil {
-				c.s.Warnf("Problems getting version level status data for: %v - %v", request.Purl, errVersion)
-			}
-
-			output := dtos.ComponentStatusOutput{
-				Purl:        request.Purl,
-				Name:        statComponent.Component,
-				Requirement: request.Requirement,
-				ComponentStatus: &dtos.ComponentStatusInfo{
-					Status:           c.statusMapper.MapStatus(statComponent.Status.String),
-					RepositoryStatus: statComponent.Status.String,
-					FirstIndexedDate: statComponent.FirstIndexedDate.String,
-					LastIndexedDate:  statComponent.LastIndexedDate.String,
-				},
-			}
-			if statusVersion != nil {
-				output.VersionStatus = &dtos.VersionStatusOutput{
-					Version:          statusVersion.Version,
-					Status:           c.statusMapper.MapStatus(statusVersion.VersionStatus.String),
-					RepositoryStatus: statusVersion.VersionStatus.String,
-					IndexedDate:      statusVersion.IndexedDate.String,
-				}
-				if statusVersion.VersionStatusChangeDate.String != "" {
-					output.VersionStatus.StatusChangeDate = statusVersion.VersionStatusChangeDate.String
-				}
-			}
-			if statComponent.StatusChangeDate.String != "" {
-				output.ComponentStatus.StatusChangeDate = statComponent.StatusChangeDate.String
-			}
-
-			return output, nil
-
-		case domain.VersionNotFound: // Valid component but VERSION NOT FOUND
-			statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(results[0].Purl)
-			if errComp != nil {
-				return dtos.ComponentStatusOutput{}, se.NewBadRequestError("Error retrieving information", errors.New("Error retrieving information"))
-			}
-			output := dtos.ComponentStatusOutput{
-				Purl:        request.Purl,
-				Name:        statComponent.Component,
-				Requirement: request.Requirement,
-				VersionStatus: &dtos.VersionStatusOutput{
-					Version:      request.Requirement,
-					ErrorMessage: &results[0].Status.Message,
-					ErrorCode:    &results[0].Status.StatusCode,
-				},
-				ComponentStatus: &dtos.ComponentStatusInfo{Status: c.statusMapper.MapStatus(statComponent.Status.String),
-					RepositoryStatus: statComponent.Status.String,
-					FirstIndexedDate: statComponent.FirstIndexedDate.String,
-					LastIndexedDate:  statComponent.LastIndexedDate.String,
-				},
-			}
-			return output, nil
-		case domain.InvalidPurl: // The requested purl is invalid, minimun data retrieved
-			errorStatus := dtos.ComponentStatusOutput{
-				Purl:        results[0].Purl,
-				Name:        "",
-				Requirement: results[0].Requirement,
-				ComponentStatus: &dtos.ComponentStatusInfo{
-					ErrorMessage: &results[0].Status.Message,
-					ErrorCode:    &results[0].Status.StatusCode,
-				},
-			}
-			return errorStatus, nil
-
-		case domain.ComponentNotFound: // Component not found on DB, minimun data retrieved
-			errorStatus := dtos.ComponentStatusOutput{
-				Purl:        results[0].Purl,
-				Name:        "",
-				Requirement: results[0].Requirement,
-				ComponentStatus: &dtos.ComponentStatusInfo{
-					ErrorMessage: &results[0].Status.Message,
-					ErrorCode:    &results[0].Status.StatusCode,
-				},
-			}
-			return errorStatus, nil
-
-		}
+		return c.handleComponentStatusResult(request, results[0])
 	}
 	return dtos.ComponentStatusOutput{}, se.NewBadRequestError("purl is required", errors.New("purl is required"))
+}
+
+// handleComponentStatusResult routes the component status result to the appropriate handler based on status code.
+func (c ComponentUseCase) handleComponentStatusResult(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
+	switch result.Status.StatusCode {
+	case domain.Success:
+		return c.handleSuccessStatus(request, result)
+	case domain.VersionNotFound:
+		return c.handleVersionNotFound(request, result)
+	case domain.InvalidPurl, domain.ComponentNotFound:
+		return c.handleErrorStatus(result)
+	default:
+		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("unknown status code", errors.New("unknown status code"))
+	}
+}
+
+// handleSuccessStatus handles the case where both component and version are found.
+func (c ComponentUseCase) handleSuccessStatus(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
+	statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(result.Purl)
+	if errComp != nil {
+		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("Error retrieving Component level data", errors.New("Error retrieving Component Level Data"))
+	}
+	output := dtos.ComponentStatusOutput{
+		Purl:            request.Purl,
+		Name:            statComponent.Component,
+		Requirement:     request.Requirement,
+		ComponentStatus: c.buildComponentStatusInfo(statComponent),
+	}
+	// Try to get version-specific status
+	statusVersion := c.getVersionStatus(request.Purl, result)
+	if statusVersion != nil {
+		output.VersionStatus = c.buildVersionStatusOutput(statusVersion)
+	}
+	return output, nil
+}
+
+// handleVersionNotFound handles the case where component exists but the version is not found.
+func (c ComponentUseCase) handleVersionNotFound(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
+	statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(result.Purl)
+	if errComp != nil {
+		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("Error retrieving information", errors.New("Error retrieving information"))
+	}
+	return dtos.ComponentStatusOutput{
+		Purl:        request.Purl,
+		Name:        statComponent.Component,
+		Requirement: request.Requirement,
+		VersionStatus: &dtos.VersionStatusOutput{
+			Version:      request.Requirement,
+			ErrorMessage: &result.Status.Message,
+			ErrorCode:    &result.Status.StatusCode,
+		},
+		ComponentStatus: c.buildComponentStatusInfo(statComponent),
+	}, nil
+}
+
+// handleErrorStatus handles error cases like InvalidPurl or ComponentNotFound.
+func (c ComponentUseCase) handleErrorStatus(result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
+	return dtos.ComponentStatusOutput{
+		Purl:        result.Purl,
+		Name:        "",
+		Requirement: result.Requirement,
+		ComponentStatus: &dtos.ComponentStatusInfo{
+			ErrorMessage: &result.Status.Message,
+			ErrorCode:    &result.Status.StatusCode,
+		},
+	}, nil
+}
+
+// buildComponentStatusInfo constructs a ComponentStatusInfo from a ComponentProjectStatus model.
+func (c ComponentUseCase) buildComponentStatusInfo(statComponent *models.ComponentProjectStatus) *dtos.ComponentStatusInfo {
+	info := &dtos.ComponentStatusInfo{
+		Status:           c.statusMapper.MapStatus(statComponent.Status.String),
+		RepositoryStatus: statComponent.Status.String,
+		FirstIndexedDate: statComponent.FirstIndexedDate.String,
+		LastIndexedDate:  statComponent.LastIndexedDate.String,
+	}
+	if statComponent.StatusChangeDate.String != "" {
+		info.StatusChangeDate = statComponent.StatusChangeDate.String
+	}
+	return info
+}
+
+// getVersionStatus retrieves version-specific status information.
+func (c ComponentUseCase) getVersionStatus(purl string, result cmpHelper.Component) *models.ComponentVersionStatus {
+	var statusVersion *models.ComponentVersionStatus
+	var errVersion error
+	if len(result.Version) > 0 {
+		statusVersion, errVersion = c.componentStatus.GetComponentStatusByPurlAndVersion(purl, result.Version)
+	} else if len(result.Requirement) > 0 {
+		statusVersion, errVersion = c.componentStatus.GetComponentStatusByPurlAndVersion(purl, result.Requirement)
+	}
+	if errVersion != nil {
+		c.s.Warnf("Problems getting version level status data for: %v - %v", purl, errVersion)
+		return nil
+	}
+	return statusVersion
+}
+
+// buildVersionStatusOutput constructs a VersionStatusOutput from a ComponentVersionStatus model.
+func (c ComponentUseCase) buildVersionStatusOutput(statusVersion *models.ComponentVersionStatus) *dtos.VersionStatusOutput {
+	output := &dtos.VersionStatusOutput{
+		Version:          statusVersion.Version,
+		Status:           c.statusMapper.MapStatus(statusVersion.VersionStatus.String),
+		RepositoryStatus: statusVersion.VersionStatus.String,
+		IndexedDate:      statusVersion.IndexedDate.String,
+	}
+	if statusVersion.VersionStatusChangeDate.String != "" {
+		output.StatusChangeDate = statusVersion.VersionStatusChangeDate.String
+	}
+	return output
 }
 
 func (c ComponentUseCase) GetComponentsStatus(request dtos.ComponentsStatusInput) (dtos.ComponentsStatusOutput, error) {
@@ -272,10 +282,8 @@ func (c ComponentUseCase) GetComponentsStatus(request dtos.ComponentsStatusInput
 		c.s.Errorf("The request does not contain any components to retrieve status")
 		return dtos.ComponentsStatusOutput{}, se.NewBadRequestError("components array is required", errors.New("components array is required"))
 	}
-
 	var output dtos.ComponentsStatusOutput
 	output.Components = make([]dtos.ComponentStatusOutput, 0, len(request.Components))
-
 	// Process each component request
 	for _, componentRequest := range request.Components {
 		componentStatus, err := c.GetComponentStatus(componentRequest)
@@ -283,7 +291,6 @@ func (c ComponentUseCase) GetComponentsStatus(request dtos.ComponentsStatusInput
 			// For batch requests, we continue even if one component fails
 			// Add an error entry for this component
 			c.s.Warnf("Failed to get status for component: %v - %v", componentRequest.Purl, err)
-
 			errorMsg := err.Error()
 			errorStatus := dtos.ComponentStatusOutput{
 				Purl:        componentRequest.Purl,
@@ -298,6 +305,5 @@ func (c ComponentUseCase) GetComponentsStatus(request dtos.ComponentsStatusInput
 			output.Components = append(output.Components, componentStatus)
 		}
 	}
-
 	return output, nil
 }

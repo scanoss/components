@@ -46,7 +46,9 @@ import (
 //go:embed version.txt
 var version string
 
-// getConfig checks command line args for option to feed into the config parser
+// getConfig checks command line args for option to feed into the config parser.
+// It performs a two-phase initialization: first loads basic config to get logging settings,
+// then initializes the logger and reloads config with the proper logger for StatusMapper.
 func getConfig() (*myconfig.ServerConfig, error) {
 	var jsonConfig, envConfig string
 	flag.StringVar(&jsonConfig, "json-config", "", "Application JSON config")
@@ -72,21 +74,30 @@ func getConfig() (*myconfig.ServerConfig, error) {
 			return nil, err
 		}
 	}
-	myConfig, err := myconfig.NewServerConfig(feeders)
+
+	// Phase 1: Load config without logger to get logging settings
+	preConfig, err := myconfig.NewServerConfig(feeders, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize the application logger
+	err = zlog.SetupAppLogger(preConfig.App.Mode, preConfig.Logging.ConfigFile, preConfig.App.Debug)
+	if err != nil {
+		return nil, err
+	}
+
+	// Phase 2: Reload config with initialized logger for StatusMapper
+	myConfig, err := myconfig.NewServerConfig(feeders, zlog.S)
 	return myConfig, err
 }
 
 // RunServer runs the gRPC Component Server
 func RunServer() error {
-	// Load command line options and config
+	// Load command line options and config (logger is initialized inside getConfig)
 	cfg, err := getConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %v", err)
-	}
-
-	err = zlog.SetupAppLogger(cfg.App.Mode, cfg.Logging.ConfigFile, cfg.App.Debug)
-	if err != nil {
-		return err
 	}
 	defer zlog.SyncZap()
 	// Check if TLS/SSL should be enabled

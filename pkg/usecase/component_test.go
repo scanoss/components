@@ -48,7 +48,7 @@ func TestComponentUseCase_SearchComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestComponentUseCase_GetComponentVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestComponentUseCase_GetComponentStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -237,7 +237,7 @@ func TestComponentUseCase_GetComponentsStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
@@ -304,7 +304,7 @@ func TestComponentUseCase_GetComponentStatus_AllCases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when loading test data", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
+	myConfig, err := myconfig.NewServerConfig(nil, nil)
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
