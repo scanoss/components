@@ -3,10 +3,11 @@ package dtos
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
-	"testing"
 )
 
 func TestParseComponentSearchInput(t *testing.T) {

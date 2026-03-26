@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	pb "github.com/scanoss/papi/api/componentsv2"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	"scanoss.com/components/pkg/dtos"
-	"testing"
 )
 
 func TestConvertSearchComponentInput(t *testing.T) {
@@ -28,7 +29,6 @@ func TestConvertSearchComponentInput(t *testing.T) {
 		t.Errorf("Error generating dto from protobuff request: %v\n", err)
 	}
 	fmt.Printf("dto component input: %v\n", dto)
-
 }
 
 func TestConvertSearchComponentOutput(t *testing.T) {
@@ -44,7 +44,7 @@ func TestConvertSearchComponentOutput(t *testing.T) {
 		{
 			Component: "angular",
 			Purl:      "pkg:github/bclinkinbeard/angular",
-			Url:       "https://github.com/bclinkinbeard/angular",
+			URL:       "https://github.com/bclinkinbeard/angular",
 		},
 	}}
 
@@ -87,14 +87,14 @@ func TestConvertCompVersionsOutput(t *testing.T) {
 		Component: dtos.ComponentOutput{
 			Component: "@angular/elements",
 			Purl:      "pkg:npm/%40angular/elements",
-			Url:       "https://www.npmjs.com/package/%40angular/elements",
+			URL:       "https://www.npmjs.com/package/%40angular/elements",
 			Versions: []dtos.ComponentVersion{
 				{
 					Version: "1.8.3",
 					Licenses: []dtos.ComponentLicense{
 						{
 							Name:   "MIT",
-							SpdxId: "MIT",
+							SpdxID: "MIT",
 							IsSpdx: true,
 						},
 					},
@@ -108,5 +108,4 @@ func TestConvertCompVersionsOutput(t *testing.T) {
 		t.Errorf("Error converting dto to protobuff request: %v\n", err)
 	}
 	fmt.Printf("dto component input: %v\n", protobuffOut)
-
 }

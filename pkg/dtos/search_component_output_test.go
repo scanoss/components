@@ -3,12 +3,14 @@ package dtos
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
-	"testing"
 )
 
+//goland:noinspection DuplicatedCode
 func TestParseComponentSearchOutput(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -28,7 +30,7 @@ func TestParseComponentSearchOutput(t *testing.T) {
 				{
 					Component: "@angular/elements",
 					Purl:      "pkg:npm/%40angular/elements",
-					Url:       "https://www.npmjs.com/package/%40angular/elements",
+					URL:       "https://www.npmjs.com/package/%40angular/elements",
 				},
 			}},
 		},
@@ -86,7 +88,7 @@ func TestExportComponentSearchOutput(t *testing.T) {
 		{
 			Component: "@angular/elements",
 			Purl:      "pkg:npm/%40angular/elements",
-			Url:       "https://www.npmjs.com/package/%40angular/elements",
+			URL:       "https://www.npmjs.com/package/%40angular/elements",
 		},
 	}}
 
@@ -94,12 +96,11 @@ func TestExportComponentSearchOutput(t *testing.T) {
 	if err != nil {
 		t.Errorf("ExportComponentSearchOutput() error = %v", err)
 	}
-	fmt.Println("Exported output data: ", data)
+	fmt.Println("Exported output data: ", string(data))
 
 	data, err = ExportComponentSearchOutput(s, ComponentsSearchOutput{})
 	if err != nil {
 		t.Errorf("ExportComponentSearchOutput() error = %v", err)
 	}
-	fmt.Println("Exported output data: ", data)
-
+	fmt.Println("Exported output data: ", string(data))
 }

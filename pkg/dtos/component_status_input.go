@@ -8,32 +8,15 @@ import (
 	"go.uber.org/zap"
 )
 
-// ComponentStatusInput represents a single component status request
+// ComponentStatusInput represents a single component status request.
 type ComponentStatusInput struct {
 	Purl        string `json:"purl"`
 	Requirement string `json:"requirement,omitempty"`
 }
 
-// ComponentsStatusInput represents a request for multiple component statuses
+// ComponentsStatusInput represents a request for multiple component statuses.
 type ComponentsStatusInput struct {
 	Components []ComponentStatusInput `json:"components"`
-}
-
-// ExportComponentStatusInput marshals a ComponentStatusInput struct to JSON bytes.
-//
-// Parameters:
-//   - s: Sugared logger for error logging
-//   - output: ComponentStatusInput struct to be marshaled
-//
-// Returns:
-//   - JSON byte array representation of the input, or error if marshaling fails
-func ExportComponentStatusInput(s *zap.SugaredLogger, output ComponentStatusInput) ([]byte, error) {
-	data, err := json.Marshal(output)
-	if err != nil {
-		s.Errorf("Parse failure: %v", err)
-		return nil, errors.New("failed to produce JSON")
-	}
-	return data, nil
 }
 
 // ParseComponentStatusInput unmarshals JSON bytes into a ComponentStatusInput struct.
@@ -53,23 +36,6 @@ func ParseComponentStatusInput(s *zap.SugaredLogger, input []byte) (ComponentSta
 	if err != nil {
 		s.Errorf("Parse failure: %v", err)
 		return ComponentStatusInput{}, fmt.Errorf("failed to parse data: %v", err)
-	}
-	return data, nil
-}
-
-// ExportComponentsStatusInput marshals a ComponentsStatusInput struct (containing multiple components) to JSON bytes.
-//
-// Parameters:
-//   - s: Sugared logger for error logging
-//   - output: ComponentsStatusInput struct containing an array of component status requests
-//
-// Returns:
-//   - JSON byte array representation of the input, or error if marshaling fails
-func ExportComponentsStatusInput(s *zap.SugaredLogger, output ComponentsStatusInput) ([]byte, error) {
-	data, err := json.Marshal(output)
-	if err != nil {
-		s.Errorf("Parse failure: %v", err)
-		return nil, errors.New("failed to produce JSON")
 	}
 	return data, nil
 }

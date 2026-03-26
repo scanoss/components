@@ -31,6 +31,7 @@ import (
 	"scanoss.com/components/pkg/models"
 )
 
+//goland:noinspection DuplicatedCode
 func TestComponentUseCase_SearchComponents(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -85,11 +86,10 @@ func TestComponentUseCase_SearchComponents(t *testing.T) {
 		fmt.Printf("Component-only search failed as expected: %v\n", err)
 		// This is fine - some component searches may not find exact matches
 	}
-
 }
 
+//goland:noinspection DuplicatedCode
 func TestComponentUseCase_GetComponentVersions(t *testing.T) {
-
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
@@ -149,10 +149,10 @@ func TestComponentUseCase_GetComponentVersions(t *testing.T) {
 		if err == nil {
 			t.Errorf("an error was expected when getting components version %v\n", err)
 		}
-
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func TestComponentUseCase_GetComponentStatus(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -220,6 +220,7 @@ func TestComponentUseCase_GetComponentStatus(t *testing.T) {
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func TestComponentUseCase_GetComponentsStatus(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -286,7 +287,9 @@ func TestComponentUseCase_GetComponentsStatus(t *testing.T) {
 	}
 }
 
-// TestComponentUseCase_GetComponentStatus_AllCases tests all status code paths
+// TestComponentUseCase_GetComponentStatus_AllCases tests all status code paths.
+//
+//goland:noinspection DuplicatedCode
 func TestComponentUseCase_GetComponentStatus_AllCases(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {

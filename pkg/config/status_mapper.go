@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// StatusMapper handles mapping of database statuses to classified statuses
+// StatusMapper handles mapping of database statuses to classified statuses.
 type StatusMapper struct {
 	mapping map[string]string
 	s       *zap.SugaredLogger
@@ -56,7 +56,7 @@ func NewStatusMapper(s *zap.SugaredLogger, mappingConfig interface{}) *StatusMap
 	return mapper
 }
 
-// parseMappingConfig parses the mapping configuration from various formats
+// parseMappingConfig parses the mapping configuration from various formats.
 func parseMappingConfig(s *zap.SugaredLogger, mappingConfig interface{}) map[string]string {
 	switch v := mappingConfig.(type) {
 	case string:
@@ -76,7 +76,7 @@ func parseMappingConfig(s *zap.SugaredLogger, mappingConfig interface{}) map[str
 	}
 }
 
-// parseJSONString parses a JSON string into a map
+// parseJSONString parses a JSON string into a map.
 func parseJSONString(s *zap.SugaredLogger, jsonStr string) map[string]string {
 	if len(strings.TrimSpace(jsonStr)) == 0 {
 		return nil
@@ -92,23 +92,21 @@ func parseJSONString(s *zap.SugaredLogger, jsonStr string) map[string]string {
 	return result
 }
 
-// convertInterfaceMap converts map[string]interface{} to map[string]string
+// convertInterfaceMap converts map[string]interface{} to map[string]string.
 func convertInterfaceMap(s *zap.SugaredLogger, m map[string]interface{}) map[string]string {
 	result := make(map[string]string, len(m))
 	for key, value := range m {
 		if strValue, ok := value.(string); ok {
 			result[key] = strValue
-		} else {
-			if s != nil {
-				s.Warnf("Skipping non-string value for key %q: %v (type: %T)", key, value, value)
-			}
+		} else if s != nil {
+			s.Warnf("Skipping non-string value for key %q: %v (type: %T)", key, value, value)
 		}
 	}
 	return result
 }
 
 // MapStatus maps a database status to its classified status
-// Returns the mapped status, or the original if no mapping exists
+// Returns the mapped status, or the original if no mapping exists.
 func (m *StatusMapper) MapStatus(dbStatus string) string {
 	if dbStatus == "" {
 		return ""
@@ -122,7 +120,7 @@ func (m *StatusMapper) MapStatus(dbStatus string) string {
 	return dbStatus
 }
 
-// getDefaultStatusMapping returns the default status classification mapping
+// getDefaultStatusMapping returns the default status classification mapping.
 func getDefaultStatusMapping() map[string]string {
 	return map[string]string{
 		"active":      "active",

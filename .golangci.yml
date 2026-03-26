@@ -87,12 +87,12 @@ linters:
   exclusions:
     paths:
       - tests
-  rules:
-    - path: _test\.go
-      linters:
-        - gocognit
-        - govet
-        - cyclop
-        - godot
-        - funlen
-        - lll
+    rules:
+      - path: _test\.go
+        linters:
+          - gocognit
+          - govet
+          - cyclop
+          - godot
+          - funlen
+          - lll

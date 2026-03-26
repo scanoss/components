@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"go.uber.org/zap"
 )
 
@@ -12,11 +13,10 @@ type ComponentsSearchOutput struct {
 }
 
 type ComponentSearchOutput struct {
-	Name      string `json:"name"`
-	Component string `json:"component"` // Deprecated. Component and name fields will contain the same data until
-	// the component field is removed
-	Purl string `json:"purl"`
-	Url  string `json:"url"`
+	Name      string `json:"name"`      // Deprecated. Component and name fields will contain the same data until
+	Component string `json:"component"` // the component field is removed
+	Purl      string `json:"purl"`
+	URL       string `json:"url"`
 }
 
 func ExportComponentSearchOutput(s *zap.SugaredLogger, output ComponentsSearchOutput) ([]byte, error) {

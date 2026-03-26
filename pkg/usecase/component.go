@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// Package usecase contains the business logic for the components API.
 package usecase
 
 import (
@@ -21,17 +22,15 @@ import (
 	"errors"
 	"fmt"
 
-	se "scanoss.com/components/pkg/errors"
-
 	"github.com/jmoiron/sqlx"
 	cmpHelper "github.com/scanoss/go-component-helper/componenthelper"
-
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/domain"
 	purlhelper "github.com/scanoss/go-purl-helper/pkg"
 	"go.uber.org/zap"
 	"scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/dtos"
+	se "scanoss.com/components/pkg/errors"
 	"scanoss.com/components/pkg/models"
 )
 
@@ -40,7 +39,7 @@ type ComponentUseCase struct {
 	s               *zap.SugaredLogger
 	q               *database.DBQueryContext
 	components      *models.ComponentModel
-	allUrl          *models.AllUrlsModel
+	allURL          *models.AllURLsModel
 	componentStatus *models.ComponentStatusModel
 	db              *sqlx.DB
 	statusMapper    *config.StatusMapper
@@ -49,7 +48,7 @@ type ComponentUseCase struct {
 func NewComponents(ctx context.Context, s *zap.SugaredLogger, db *sqlx.DB, q *database.DBQueryContext, statusMapper *config.StatusMapper) *ComponentUseCase {
 	return &ComponentUseCase{ctx: ctx, s: s, q: q,
 		components:      models.NewComponentModel(ctx, s, q, database.GetLikeOperator(db)),
-		allUrl:          models.NewAllUrlModel(ctx, s, q),
+		allURL:          models.NewAllURLModel(ctx, s, q),
 		componentStatus: models.NewComponentStatusModel(ctx, s, q),
 		db:              db,
 		statusMapper:    statusMapper,
@@ -59,20 +58,21 @@ func NewComponents(ctx context.Context, s *zap.SugaredLogger, db *sqlx.DB, q *da
 func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (dtos.ComponentsSearchOutput, error) {
 	var err error
 	var searchResults []models.Component
-	if len(request.Search) != 0 {
+	switch {
+	case len(request.Search) != 0:
 		searchResults, err = c.components.GetComponents(request.Search, request.Package, request.Limit, request.Offset)
-	} else if len(request.Component) != 0 && len(request.Vendor) == 0 {
+	case len(request.Component) != 0 && len(request.Vendor) == 0:
 		searchResults, err = c.components.GetComponentsByNameType(request.Component, request.Package, request.Limit, request.Offset)
-	} else if len(request.Component) == 0 && len(request.Vendor) != 0 {
+	case len(request.Component) == 0 && len(request.Vendor) != 0:
 		searchResults, err = c.components.GetComponentsByVendorType(request.Vendor, request.Package, request.Limit, request.Offset)
-	} else if len(request.Component) != 0 && len(request.Vendor) != 0 {
+	case len(request.Component) != 0 && len(request.Vendor) != 0:
 		searchResults, err = c.components.GetComponentsByNameVendorType(request.Component, request.Vendor, request.Package, request.Limit, request.Offset)
 	}
 	if err != nil {
 		c.s.Errorf("Problem encountered searching for components: %v - %v.", request.Component, request.Package)
 	}
 	for i := range searchResults {
-		searchResults[i].Url, _ = purlhelper.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
+		searchResults[i].URL, _ = purlhelper.ProjectUrl(searchResults[i].PurlName, searchResults[i].PurlType)
 	}
 	var componentsSearchResults []dtos.ComponentSearchOutput
 
@@ -81,7 +81,7 @@ func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (d
 		componentSearchResult.Name = component.Component
 		componentSearchResult.Component = component.Component // Deprecated. Remove in future versions
 		componentSearchResult.Purl = "pkg:" + component.PurlType + "/" + component.PurlName
-		componentSearchResult.Url = component.Url
+		componentSearchResult.URL = component.URL
 		componentsSearchResults = append(componentsSearchResults, componentSearchResult)
 	}
 	if len(componentsSearchResults) == 0 {
@@ -95,7 +95,7 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 		c.s.Errorf("The request does not contains purl to retrieve component versions")
 		return dtos.ComponentVersionsOutput{}, errors.New("the request does not contains purl to retrieve component versions")
 	}
-	allUrls, err := c.allUrl.GetUrlsByPurlString(request.Purl, request.Limit)
+	allUrls, err := c.allURL.GetUrlsByPurlString(request.Purl, request.Limit)
 	if err != nil {
 		c.s.Errorf("Problem encountered gettings URLs versions for: %v - %v.", request.Purl, err)
 		return dtos.ComponentVersionsOutput{}, err
@@ -116,7 +116,7 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 	output.Purl = request.Purl
 	if len(allUrls) > 0 {
 		output.Name = allUrls[0].Component
-		output.Url = projectURL
+		output.URL = projectURL
 		output.Component = allUrls[0].Component
 		output.Versions = []dtos.ComponentVersion{}
 		for _, u := range allUrls {
@@ -135,7 +135,7 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 				continue
 			}
 			license.Name = u.License
-			license.SpdxId = u.LicenseId
+			license.SpdxID = u.LicenseID
 			license.IsSpdx = u.IsSpdx
 			version.Licenses = append(version.Licenses, license)
 			output.Versions = append(output.Versions, version)
@@ -169,6 +169,7 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 
 // handleComponentStatusResult routes the component status result to the appropriate handler based on status code.
 func (c ComponentUseCase) handleComponentStatusResult(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
+	//nolint:exhaustive
 	switch result.Status.StatusCode {
 	case domain.Success:
 		return c.handleSuccessStatus(request, result)

@@ -17,7 +17,7 @@ type ComponentOutput struct {
 	Component string `json:"component"` // Deprecated. Component and name fields will contain the same data until
 	// the component field is removed
 	Purl     string             `json:"purl"`
-	Url      string             `json:"url"`
+	URL      string             `json:"url"`
 	Versions []ComponentVersion `json:"versions"`
 }
 
@@ -29,7 +29,7 @@ type ComponentVersion struct {
 
 type ComponentLicense struct {
 	Name   string `json:"name"`
-	SpdxId string `json:"spdx_id"`
+	SpdxID string `json:"spdx_id"`
 	IsSpdx bool   `json:"is_spdx_approved"`
 }
 

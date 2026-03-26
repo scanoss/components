@@ -150,8 +150,7 @@ func convertComponentStatusInput(s *zap.SugaredLogger, request interface{}) (dto
 //
 // Returns:
 //   - gRPC ComponentStatusResponse with populated fields, or error if conversion fails
-func convertComponentStatusOutput(s *zap.SugaredLogger, output dtos.ComponentStatusOutput) (*pb.ComponentStatusResponse, error) {
-
+func convertComponentStatusOutput(output dtos.ComponentStatusOutput) *pb.ComponentStatusResponse {
 	response := &pb.ComponentStatusResponse{
 		Purl:        output.Purl,
 		Requirement: output.Requirement,
@@ -172,7 +171,7 @@ func convertComponentStatusOutput(s *zap.SugaredLogger, output dtos.ComponentSta
 			ErrorMessage: output.ComponentStatus.ErrorMessage,
 			ErrorCode:    domain.StatusCodeToErrorCode(*output.ComponentStatus.ErrorCode),
 		}
-		return response, nil
+		return response
 	}
 	if output.VersionStatus != nil {
 		if output.VersionStatus.ErrorCode == nil {
@@ -194,7 +193,7 @@ func convertComponentStatusOutput(s *zap.SugaredLogger, output dtos.ComponentSta
 		}
 	}
 
-	return response, nil
+	return response
 }
 
 // convertComponentsStatusInput converts a gRPC components status request into a ComponentsStatusInput DTO.
@@ -229,17 +228,11 @@ func convertComponentsStatusInput(s *zap.SugaredLogger, request interface{}) (dt
 //
 // Returns:
 //   - gRPC ComponentsStatusResponse with all converted component status entries, or error if conversion fails
-func convertComponentsStatusOutput(s *zap.SugaredLogger, output dtos.ComponentsStatusOutput) (*pb.ComponentsStatusResponse, error) {
-
+func convertComponentsStatusOutput(output dtos.ComponentsStatusOutput) *pb.ComponentsStatusResponse {
 	var statusResp pb.ComponentsStatusResponse
-	var someErr error = nil
 	for _, c := range output.Components {
-		cs, errComp := convertComponentStatusOutput(s, c)
-		if errComp != nil {
-			someErr = errComp
-		}
+		cs := convertComponentStatusOutput(c)
 		statusResp.Components = append(statusResp.Components, cs)
 	}
-
-	return &statusResp, someErr
+	return &statusResp
 }

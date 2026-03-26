@@ -19,15 +19,17 @@ package models
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	_ "modernc.org/sqlite"
 	myconfig "scanoss.com/components/pkg/config"
-	"testing"
 )
 
+//goland:noinspection DuplicatedCode
 func TestComponentsModel(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -103,7 +105,6 @@ func TestComponentsModel(t *testing.T) {
 			t.Errorf("components.GetComponentsByVendorType() error = %v", err)
 		}
 		fmt.Printf("Components: %v\n", components)
-
 	}
 
 	_, err = component.GetComponents("", "", 0, 0)
@@ -128,7 +129,6 @@ func TestComponentsModel(t *testing.T) {
 }
 
 func TestPreProcessQueryJobs(t *testing.T) {
-
 	testTable := []struct {
 		qList    []QueryJob
 		purlType string

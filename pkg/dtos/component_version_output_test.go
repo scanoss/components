@@ -10,6 +10,7 @@ import (
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 )
 
+//goland:noinspection DuplicatedCode
 func TestParseComponentVersionsOutput(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -36,14 +37,14 @@ func TestParseComponentVersionsOutput(t *testing.T) {
 			want: ComponentVersionsOutput{Component: ComponentOutput{
 				Component: "@angular/elements",
 				Purl:      "pkg:npm/%40angular/elements",
-				Url:       "https://www.npmjs.com/package/%40angular/elements",
+				URL:       "https://www.npmjs.com/package/%40angular/elements",
 				Versions: []ComponentVersion{
 					{
 						Version: "1.8.3",
 						Licenses: []ComponentLicense{
 							{
 								Name:   "MIT",
-								SpdxId: "MIT",
+								SpdxID: "MIT",
 								IsSpdx: true,
 							},
 						},
@@ -53,7 +54,7 @@ func TestParseComponentVersionsOutput(t *testing.T) {
 						Licenses: []ComponentLicense{
 							{
 								Name:   "MIT",
-								SpdxId: "MIT",
+								SpdxID: "MIT",
 								IsSpdx: true,
 							},
 						},
@@ -105,14 +106,14 @@ func TestExportComponentVersionsOutput(t *testing.T) {
 	fullComponent := ComponentVersionsOutput{Component: ComponentOutput{
 		Component: "@angular/elements",
 		Purl:      "pkg:npm/%40angular/elements",
-		Url:       "https://www.npmjs.com/package/%40angular/elements",
+		URL:       "https://www.npmjs.com/package/%40angular/elements",
 		Versions: []ComponentVersion{
 			{
 				Version: "1.8.3",
 				Licenses: []ComponentLicense{
 					{
 						Name:   "MIT",
-						SpdxId: "MIT",
+						SpdxID: "MIT",
 						IsSpdx: true,
 					},
 				},
@@ -122,7 +123,7 @@ func TestExportComponentVersionsOutput(t *testing.T) {
 				Licenses: []ComponentLicense{
 					{
 						Name:   "MIT",
-						SpdxId: "MIT",
+						SpdxID: "MIT",
 						IsSpdx: true,
 					},
 				},
@@ -134,11 +135,11 @@ func TestExportComponentVersionsOutput(t *testing.T) {
 	if err != nil {
 		t.Errorf("dtos.ExportComponentVersionsOutput() error = %v", err)
 	}
-	fmt.Println("Exported output data: ", data)
+	fmt.Println("Exported output data: ", string(data))
 
 	data, err = ExportComponentVersionsOutput(s, ComponentVersionsOutput{})
 	if err != nil {
 		t.Errorf("dtos.ExportComponentVersionsOutput() error = %v", err)
 	}
-	fmt.Println("Exported output data: ", data)
+	fmt.Println("Exported output data: ", string(data))
 }

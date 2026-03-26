@@ -14,22 +14,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Package main loads the gRPC Component Server Service
-package main
-
-import (
-	"fmt"
-	"os"
-
-	"scanoss.com/components/pkg/cmd"
-)
-
-// main starts the gRPC Component Service.
-func main() {
-	// Launch the Component Server Service
-	if err := cmd.RunServer(); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "ERROR: Server launch error: %v\n", err)
-		os.Exit(1)
-	}
-	os.Exit(0)
-}
+// Package models contains the models for the application
+package models

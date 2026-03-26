@@ -22,6 +22,9 @@ import (
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 )
 
+const removedStatus = "removed"
+const activeStatus = "active"
+
 func TestStatusMapper_MapStatus_DefaultMappings(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -38,15 +41,15 @@ func TestStatusMapper_MapStatus_DefaultMappings(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"active maps to active", "active", "active"},
-		{"unlisted maps to removed", "unlisted", "removed"},
-		{"yanked maps to removed", "yanked", "removed"},
+		{"active maps to active", activeStatus, activeStatus},
+		{"unlisted maps to removed", "unlisted", removedStatus},
+		{"yanked maps to removed", "yanked", removedStatus},
 		{"deleted maps to deleted", "deleted", "deleted"},
 		{"deprecated maps to deprecated", "deprecated", "deprecated"},
-		{"unpublished maps to removed", "unpublished", "removed"},
+		{"unpublished maps to removed", "unpublished", removedStatus},
 		{"archived maps to deprecated", "archived", "deprecated"},
 		{"ACTIVE (uppercase) maps to active", "ACTIVE", "active"},
-		{"Unlisted (mixed case) maps to removed", "Unlisted", "removed"},
+		{"Unlisted (mixed case) maps to removed", "Unlisted", removedStatus},
 		{"unknown status returns original", "unknown-status", "unknown-status"},
 		{"empty string returns empty", "", ""},
 		{"whitespace status returns original", "  some status  ", "  some status  "},
@@ -81,7 +84,7 @@ func TestStatusMapper_MapStatus_CustomMappings(t *testing.T) {
 	}{
 		{"custom unlisted mapping", "unlisted", "custom-removed"},
 		{"custom new-status mapping", "new-status", "custom-value"},
-		{"custom active override", "active", "still-active"},
+		{"custom active override", activeStatus, "still-active"},
 		{"default yanked still works", "yanked", "removed"},
 		{"default deleted still works", "deleted", "deleted"},
 		{"unknown status returns original", "completely-unknown", "completely-unknown"},
@@ -111,13 +114,13 @@ func TestStatusMapper_MapStatus_InvalidJSON(t *testing.T) {
 
 	// Should use defaults when JSON is invalid
 	result := mapper.MapStatus("unlisted")
-	if result != "removed" {
-		t.Errorf("MapStatus with invalid JSON should use defaults, got %q, expected %q", result, "removed")
+	if result != removedStatus {
+		t.Errorf("MapStatus with invalid JSON should use defaults, got %q, expected %q", result, removedStatus)
 	}
 
-	result = mapper.MapStatus("active")
-	if result != "active" {
-		t.Errorf("MapStatus with invalid JSON should use defaults, got %q, expected %q", result, "active")
+	result = mapper.MapStatus(activeStatus)
+	if result != activeStatus {
+		t.Errorf("MapStatus with invalid JSON should use defaults, got %q, expected %q", result, activeStatus)
 	}
 }
 
@@ -137,8 +140,8 @@ func TestStatusMapper_MapStatus_EmptyJSON(t *testing.T) {
 
 		// Should use defaults
 		result := mapper.MapStatus("unlisted")
-		if result != "removed" {
-			t.Errorf("MapStatus with empty JSON %q should use defaults, got %q, expected %q", emptyJSON, result, "removed")
+		if result != removedStatus {
+			t.Errorf("MapStatus with empty JSON %q should use defaults, got %q, expected %q", emptyJSON, result, removedStatus)
 		}
 	}
 }
@@ -158,14 +161,14 @@ func TestStatusMapper_MapStatus_CaseSensitivity(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"active", "active"},
-		{"ACTIVE", "active"},
-		{"Active", "active"},
-		{"AcTiVe", "active"},
-		{"unlisted", "removed"},
-		{"UNLISTED", "removed"},
-		{"Unlisted", "removed"},
-		{"UnLiStEd", "removed"},
+		{activeStatus, activeStatus},
+		{"ACTIVE", activeStatus},
+		{"Active", activeStatus},
+		{"AcTiVe", activeStatus},
+		{"unlisted", removedStatus},
+		{"UNLISTED", removedStatus},
+		{"Unlisted", removedStatus},
+		{"UnLiStEd", removedStatus},
 	}
 
 	for _, tc := range testCases {
@@ -180,12 +183,12 @@ func TestGetDefaultStatusMapping(t *testing.T) {
 	defaults := getDefaultStatusMapping()
 
 	expectedMappings := map[string]string{
-		"active":      "active",
-		"unlisted":    "removed",
-		"yanked":      "removed",
+		activeStatus:  activeStatus,
+		"unlisted":    removedStatus,
+		"yanked":      removedStatus,
 		"deleted":     "deleted",
 		"deprecated":  "deprecated",
-		"unpublished": "removed",
+		"unpublished": removedStatus,
 		"archived":    "deprecated",
 	}
 
@@ -214,7 +217,7 @@ func TestStatusMapper_MapStatus_MapFormat(t *testing.T) {
 	customMapping := map[string]interface{}{
 		"unlisted":   "custom-removed",
 		"new-status": "custom-value",
-		"active":     "still-active",
+		activeStatus: "still-active",
 	}
 	mapper := NewStatusMapper(s, customMapping)
 
@@ -225,8 +228,8 @@ func TestStatusMapper_MapStatus_MapFormat(t *testing.T) {
 	}{
 		{"map format: custom unlisted mapping", "unlisted", "custom-removed"},
 		{"map format: custom new-status mapping", "new-status", "custom-value"},
-		{"map format: custom active override", "active", "still-active"},
-		{"map format: default yanked still works", "yanked", "removed"},
+		{"map format: custom active override", activeStatus, "still-active"},
+		{"map format: default yanked still works", "yanked", removedStatus},
 		{"map format: default deleted still works", "deleted", "deleted"},
 		{"map format: unknown status returns original", "completely-unknown", "completely-unknown"},
 	}
@@ -253,8 +256,8 @@ func TestStatusMapper_NilConfig(t *testing.T) {
 	mapper := NewStatusMapper(s, nil)
 
 	result := mapper.MapStatus("unlisted")
-	if result != "removed" {
-		t.Errorf("MapStatus with nil config should use defaults, got %q, expected %q", result, "removed")
+	if result != removedStatus {
+		t.Errorf("MapStatus with nil config should use defaults, got %q, expected %q", result, removedStatus)
 	}
 }
 
@@ -268,8 +271,8 @@ func TestStatusMapper_MapWithNonStringValue(t *testing.T) {
 
 	// Create mapper with map containing non-string values
 	customMapping := map[string]interface{}{
-		"unlisted": "custom-removed",
-		"active":   123, // Invalid: not a string
+		"unlisted":   "custom-removed",
+		activeStatus: 123, // Invalid: not a string
 	}
 	mapper := NewStatusMapper(s, customMapping)
 
@@ -280,8 +283,8 @@ func TestStatusMapper_MapWithNonStringValue(t *testing.T) {
 	}
 
 	// active should use default (non-string value was skipped)
-	result = mapper.MapStatus("active")
-	if result != "active" {
-		t.Errorf("MapStatus('active') with non-string value should use default, got %q, expected %q", result, "active")
+	result = mapper.MapStatus(activeStatus)
+	if result != activeStatus {
+		t.Errorf("MapStatus('active') with non-string value should use default, got %q, expected %q", result, activeStatus)
 	}
 }

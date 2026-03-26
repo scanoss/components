@@ -41,7 +41,7 @@ type Component struct {
 	Component string `db:"component"`
 	PurlType  string `db:"purl_type"`
 	PurlName  string `db:"purl_name"`
-	Url       string `db:"-"`
+	URL       string `db:"-"`
 }
 
 func NewComponentModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext, likeOperator string) *ComponentModel {
@@ -51,9 +51,8 @@ func NewComponentModel(ctx context.Context, s *zap.SugaredLogger, q *database.DB
 	return &ComponentModel{ctx: ctx, s: s, q: q, likeOperator: likeOperator}
 }
 
-// preProcessQueryJob Replace the clause #ORDER in the queries (if exist) according to the purlType
+// preProcessQueryJob Replace the clause #ORDER in the queries (if exist) according to the purlType.
 func preProcessQueryJob(qListIn []QueryJob, purlType string) ([]QueryJob, error) {
-
 	if len(qListIn) == 0 {
 		return []QueryJob{}, errors.New("cannot pre process query jobs empty or with limit less than 0")
 	}
@@ -308,7 +307,6 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 }
 
 func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlType string, limit, offset int) ([]Component, error) {
-
 	if len(compName) == 0 || len(vendor) == 0 {
 		m.s.Error("Please specify a valid Component Name to query")
 		return []Component{}, errors.New("please specify a valid component Name to query")

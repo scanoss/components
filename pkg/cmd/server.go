@@ -27,6 +27,7 @@ import (
 
 	"github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/scanoss/go-grpc-helper/pkg/files"
 	gd "github.com/scanoss/go-grpc-helper/pkg/grpc/database"
@@ -89,7 +90,7 @@ func getConfig() (*myconfig.ServerConfig, error) {
 	return myConfig, err
 }
 
-// RunServer runs the gRPC Component Server
+// RunServer runs the gRPC Component Server.
 func RunServer() error {
 	// Load command line options and config (logger is initialized inside getConfig)
 	cfg, err := getConfig()
@@ -107,14 +108,12 @@ func RunServer() error {
 	if err != nil {
 		return err
 	}
-
 	// Set the default version from the embedded binary version if not overridden by config/env
 	if len(cfg.App.Version) == 0 {
 		cfg.App.Version = strings.TrimSpace(version)
 	}
 	zlog.S.Infof("Starting SCANOSS Component Service: %v", cfg.App.Version)
-
-	// Setup database connection pool
+	// Set up the database connection pool
 	db, err := gd.OpenDBConnection(cfg.Database.Dsn, cfg.Database.Driver, cfg.Database.User, cfg.Database.Passwd,
 		cfg.Database.Host, cfg.Database.Schema, cfg.Database.SslMode)
 	if err != nil {
@@ -125,17 +124,8 @@ func RunServer() error {
 	}
 	defer gd.CloseDBConnection(db)
 	// Log database version info
-	dbVersionModel := gomodels.NewDBVersionModel(db)
-	dbVersion, dbVersionErr := dbVersionModel.GetCurrentVersion(context.Background())
-	if dbVersionErr != nil {
-		zlog.S.Warnf("Could not read db_version table: %v", dbVersionErr)
-	} else if len(dbVersion.SchemaVersion) > 0 {
-		zlog.S.Infof("Loaded decoration DB: package=%s, schema=%s, created_at=%s",
-			dbVersion.PackageName, dbVersion.SchemaVersion, dbVersion.CreatedAt)
-	} else {
-		zlog.S.Warn("db_version table is empty")
-	}
-	// Setup dynamic logging (if necessary)
+	logDBVersion(db)
+	// Set up dynamic logging (if necessary)
 	zlog.SetupAppDynamicLogging(cfg.Logging.DynamicPort, cfg.Logging.DynamicLogging)
 	// Register the component service
 	v2API := service.NewComponentServer(db, cfg)
@@ -154,4 +144,20 @@ func RunServer() error {
 	}
 	// graceful shutdown
 	return gs.WaitServerComplete(srv, server)
+}
+
+// logDBVersion logs the current version of the database.
+func logDBVersion(db *sqlx.DB) {
+	// Log database version info
+	dbVersionModel := gomodels.NewDBVersionModel(db)
+	dbVersion, dbVersionErr := dbVersionModel.GetCurrentVersion(context.Background())
+	switch {
+	case dbVersionErr != nil:
+		zlog.S.Warnf("Could not read db_version table: %v", dbVersionErr)
+	case len(dbVersion.SchemaVersion) > 0:
+		zlog.S.Infof("Loaded decoration DB: package=%s, schema=%s, created_at=%s",
+			dbVersion.PackageName, dbVersion.SchemaVersion, dbVersion.CreatedAt)
+	default:
+		zlog.S.Warn("db_version table is empty")
+	}
 }

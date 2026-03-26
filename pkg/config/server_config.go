@@ -131,7 +131,7 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.Telemetry.OltpExporter = "0.0.0.0:4317" // Default OTEL OLTP gRPC Exporter endpoint
 }
 
-// InitStatusMapperConfig initialise the status mapper for mapping component statuses
+// InitStatusMapperConfig initialise the status mapper for mapping component statuses.
 func (cfg *ServerConfig) InitStatusMapperConfig(s *zap.SugaredLogger) {
 	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.StatusMapping.Mapping))
 }

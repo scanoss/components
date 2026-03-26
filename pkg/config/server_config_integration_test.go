@@ -17,6 +17,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -37,10 +38,12 @@ func TestServerConfig_StatusMapping_FromEnv(t *testing.T) {
 	if errEnv != nil {
 		t.Fatalf("Could not set env variable: %v", errEnv)
 	}
-	defer os.Unsetenv("STATUS_MAPPING")
 	cfg, err := NewServerConfig(nil)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
+	}
+	if ue := os.Unsetenv("STATUS_MAPPING"); ue != nil {
+		fmt.Printf("Warning: Problem running Unsetenv: %v\n", ue)
 	}
 	// Allowing the GetStatusMapper to load the config
 	mapper := cfg.GetStatusMapper()
@@ -110,11 +113,14 @@ func TestServerConfig_StatusMapping_WithProvidedLogger(t *testing.T) {
 	if errEnv != nil {
 		t.Fatalf("Could not set env variable: %v", errEnv)
 	}
-	defer os.Unsetenv("STATUS_MAPPING")
 	cfg, err := NewServerConfig(nil)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
+	if ue := os.Unsetenv("STATUS_MAPPING"); ue != nil {
+		fmt.Printf("Warning: Problem running Unsetenv: %v\n", ue)
+	}
+
 	cfg.InitStatusMapperConfig(zlog.S)
 	mapper := cfg.GetStatusMapper()
 	if mapper == nil {

@@ -42,8 +42,8 @@ func RunServer(config *myconfig.ServerConfig, ctx context.Context, grpcPort, htt
 	go func() {
 		ctx2, cancel := context.WithCancel(ctx)
 		defer cancel()
-		if err := pb.RegisterComponentsHandlerFromEndpoint(ctx2, mux, grpcGateway, opts); err != nil {
-			zlog.S.Panicf("Failed to start HTTP gateway %v", err)
+		if err2 := pb.RegisterComponentsHandlerFromEndpoint(ctx2, mux, grpcGateway, opts); err2 != nil {
+			zlog.S.Panicf("Failed to start HTTP gateway %v", err2)
 		}
 		gw.StartGateway(srv, config.TLS.CertFile, config.TLS.KeyFile, startTLS)
 	}()

@@ -33,7 +33,7 @@ type ComponentStatusModel struct {
 	q   *database.DBQueryContext
 }
 
-// ComponentVersionStatus represents the status information for a specific version
+// ComponentVersionStatus represents the status information for a specific version.
 type ComponentVersionStatus struct {
 	PurlName                string         `db:"purl_name"`
 	Version                 string         `db:"version"`
@@ -42,7 +42,7 @@ type ComponentVersionStatus struct {
 	VersionStatusChangeDate sql.NullString `db:"version_status_change_date"`
 }
 
-// ComponentProjectStatus represents the status information for a component (ignoring version)
+// ComponentProjectStatus represents the status information for a component (ignoring version).
 type ComponentProjectStatus struct {
 	PurlName         string         `db:"purl_name"`
 	Component        string         `db:"component"`
@@ -52,7 +52,7 @@ type ComponentProjectStatus struct {
 	StatusChangeDate sql.NullString `db:"status_change_date"`
 }
 
-// ComponentFullStatus combines version and project status information
+// ComponentFullStatus combines version and project status information.
 type ComponentFullStatus struct {
 	ComponentVersionStatus
 	ComponentProjectStatus
@@ -62,7 +62,7 @@ func NewComponentStatusModel(ctx context.Context, s *zap.SugaredLogger, q *datab
 	return &ComponentStatusModel{ctx: ctx, s: s, q: q}
 }
 
-// GetComponentStatusByPurlAndVersion gets status information for a specific component version
+// GetComponentStatusByPurlAndVersion gets status information for a specific component version.
 func (m *ComponentStatusModel) GetComponentStatusByPurlAndVersion(purlString, version string) (*ComponentVersionStatus, error) {
 	if len(purlString) == 0 {
 		m.s.Errorf("Please specify a valid Purl String to query")
@@ -101,7 +101,7 @@ func (m *ComponentStatusModel) GetComponentStatusByPurlAndVersion(purlString, ve
 	return &status, nil
 }
 
-// GetComponentStatusByPurl gets status information for the latest version of a component
+// GetComponentStatusByPurl gets status information for the latest version of a component.
 func (m *ComponentStatusModel) GetComponentStatusByPurl(purlString string) (*ComponentProjectStatus, error) {
 	if len(purlString) == 0 {
 		m.s.Errorf("Please specify a valid Purl String to query")
@@ -147,7 +147,7 @@ func (m *ComponentStatusModel) GetComponentStatusByPurl(purlString string) (*Com
 	return &status, nil
 }
 
-// GetProjectStatusByPurl gets only the project-level status (no version information)
+// GetProjectStatusByPurl gets only the project-level status (no version information).
 func (m *ComponentStatusModel) GetProjectStatusByPurl(purlString string) (*ComponentProjectStatus, error) {
 	if len(purlString) == 0 {
 		m.s.Errorf("Please specify a valid Purl String to query")

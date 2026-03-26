@@ -49,14 +49,14 @@ func NewComponentServer(db *sqlx.DB, config *myconfig.ServerConfig) pb.Component
 	}
 }
 
-// Echo sends back the same message received
+// Echo sends back the same message received.
 func (d componentServer) Echo(ctx context.Context, request *common.EchoRequest) (*common.EchoResponse, error) {
 	s := ctxzap.Extract(ctx).Sugar()
 	s.Infof("Received (%v): %v", ctx, request.GetMessage())
 	return &common.EchoResponse{Message: request.GetMessage()}, nil
 }
 
-// SearchComponents and retrieves a list of components
+// SearchComponents and retrieves a list of components.
 func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
 	requestStartTime := time.Now() // Capture the scan start time
 	s := ctxzap.Extract(ctx).Sugar()
@@ -106,7 +106,6 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 }
 
 func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.CompVersionRequest) (*pb.CompVersionResponse, error) {
-
 	requestStartTime := time.Now() // Capture the scan start time
 	s := ctxzap.Extract(ctx).Sugar()
 	s.Info("Processing component versions request...")
@@ -171,7 +170,7 @@ func telemetryCompVersionRequestTime(ctx context.Context, config *myconfig.Serve
 	}
 }
 
-// GetComponentStatus retrieves status information for a specific component
+// GetComponentStatus retrieves status information for a specific component.
 func (d componentServer) GetComponentStatus(ctx context.Context, request *common.ComponentRequest) (*pb.ComponentStatusResponse, error) {
 	s := ctxzap.Extract(ctx).Sugar()
 	s.Info("Processing component status request...")
@@ -194,15 +193,11 @@ func (d componentServer) GetComponentStatus(ctx context.Context, request *common
 		return &pb.ComponentStatusResponse{}, err
 	}
 	// Convert the output to protobuf
-	statusResponse, err := convertComponentStatusOutput(s, dtoOutput)
-	if err != nil {
-		s.Errorf("Failed to convert component status output: %v", err)
-		return &pb.ComponentStatusResponse{}, errors.New("problems encountered extracting component status data")
-	}
+	statusResponse := convertComponentStatusOutput(dtoOutput)
 	return statusResponse, nil
 }
 
-// GetComponentsStatus retrieves status information for multiple components
+// GetComponentsStatus retrieves status information for multiple components.
 func (d componentServer) GetComponentsStatus(ctx context.Context, request *common.ComponentsRequest) (*pb.ComponentsStatusResponse, error) {
 	s := ctxzap.Extract(ctx).Sugar()
 	s.Info("Processing components status request...")
@@ -231,16 +226,7 @@ func (d componentServer) GetComponentsStatus(ctx context.Context, request *commo
 		return &pb.ComponentsStatusResponse{Status: status}, nil
 	}
 	// Convert the output to protobuf
-	statusResponse, err := convertComponentsStatusOutput(s, dtoOutput)
-	if err != nil {
-		s.Errorf("Failed to convert components status output: %v", err)
-		return &pb.ComponentsStatusResponse{Status: &common.StatusResponse{
-			Status:  common.StatusCode_FAILED,
-			Message: "Problems encountered extracting components status data",
-			Db:      d.getDBVersion(),
-			Server:  &common.StatusResponse_Server{Version: d.config.App.Version},
-		}}, nil
-	}
+	statusResponse := convertComponentsStatusOutput(dtoOutput)
 	// Set the status and respond with the data
 	return &pb.ComponentsStatusResponse{
 		Components: statusResponse.Components,

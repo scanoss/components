@@ -28,7 +28,9 @@ import (
 	myconfig "scanoss.com/components/pkg/config"
 )
 
-// TestGetComponentStatusByPurlAndVersion tests retrieving status for a specific component version
+// TestGetComponentStatusByPurlAndVersion tests retrieving status for a specific component version.
+//
+//goland:noinspection DuplicatedCode
 func TestGetComponentStatusByPurlAndVersion(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -102,7 +104,9 @@ func TestGetComponentStatusByPurlAndVersion(t *testing.T) {
 	}
 }
 
-// TestGetComponentStatusByPurl tests retrieving status for a component (without version)
+// TestGetComponentStatusByPurl tests retrieving status for a component (without version).
+//
+//goland:noinspection DuplicatedCode
 func TestGetComponentStatusByPurl(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -162,7 +166,9 @@ func TestGetComponentStatusByPurl(t *testing.T) {
 	}
 }
 
-// TestGetProjectStatusByPurl tests retrieving project-level status only (no version info)
+// TestGetProjectStatusByPurl tests retrieving project-level status only (no version info).
+//
+//goland:noinspection DuplicatedCode
 func TestGetProjectStatusByPurl(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
