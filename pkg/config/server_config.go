@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2018-2022 SCANOSS.COM
+ * Copyright (C) 2018-2026 SCANOSS.COM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,12 @@
 package config
 
 import (
+	"encoding/json"
+
 	"github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
+	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
+	"go.uber.org/zap"
 )
 
 const (
@@ -26,7 +30,22 @@ const (
 	defaultRestPort = "40053"
 )
 
-// ServerConfig is configuration for Server
+// parseStatusMappingString converts a string to interface{} for StatusMapper
+// It handles both JSON object format (from config file) and JSON string format (from env var).
+func parseStatusMappingString(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	// Try to unmarshal as map first (JSON object from config file)
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &m); err == nil {
+		return m
+	}
+	// Otherwise return as string (JSON string from env var)
+	return s
+}
+
+// ServerConfig is a configuration for Server.
 type ServerConfig struct {
 	App struct {
 		Name           string `env:"APP_NAME"`
@@ -68,9 +87,14 @@ type ServerConfig struct {
 		BlockByDefault bool   `env:"COMP_BLOCK_BY_DEFAULT"` // Block request by default if they are not in the allow list
 		TrustProxy     bool   `env:"COMP_TRUST_PROXY"`      // Trust the interim proxy or not (causes the source IP to be validated instead of the proxy)
 	}
+	StatusMapping struct {
+		Mapping string `env:"STATUS_MAPPING"` // JSON string mapping DB statuses to classified statuses (from env or file)
+	}
+	// StatusMapper is the compiled status mapper (initialised once at startup)
+	statusMapper *StatusMapper
 }
 
-// NewServerConfig loads all config options and return a struct for use
+// NewServerConfig loads all config options and return a struct for use.
 func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
 	cfg := ServerConfig{}
 	setServerConfigDefaults(&cfg)
@@ -87,7 +111,7 @@ func NewServerConfig(feeders []config.Feeder) (*ServerConfig, error) {
 	return &cfg, nil
 }
 
-// setServerConfigDefaults attempts to set reasonable defaults for the server config
+// setServerConfigDefaults attempts to set reasonable defaults for the server config.
 func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.App.Name = "SCANOSS Component Server"
 	cfg.App.GRPCPort = defaultGrpcPort
@@ -105,4 +129,18 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.Logging.DynamicPort = "localhost:60053"
 	cfg.Telemetry.Enabled = false
 	cfg.Telemetry.OltpExporter = "0.0.0.0:4317" // Default OTEL OLTP gRPC Exporter endpoint
+}
+
+// InitStatusMapperConfig initialise the status mapper for mapping component statuses.
+func (cfg *ServerConfig) InitStatusMapperConfig(s *zap.SugaredLogger) {
+	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.StatusMapping.Mapping))
+}
+
+// GetStatusMapper returns the status mapper for mapping database statuses to classified statuses.
+func (cfg *ServerConfig) GetStatusMapper() *StatusMapper {
+	// Initialise the mapper if it wasn't done previously
+	if cfg.statusMapper == nil {
+		cfg.InitStatusMapperConfig(zlog.S)
+	}
+	return cfg.statusMapper
 }

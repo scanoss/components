@@ -29,7 +29,12 @@ DB_SCHEMA=scanoss
 DB_SSL_MODE=disable
 DB_DSN=
 ```
+## Status mapping
+User can define custom status mapping using `STATUS_MAPPING` variable (JSON format)
 
+``` bash
+STATUS_MAPPING='{"unlisted":"removed","yanked":"removed","deleted":"deleted","deprecated":"deprecated","unpublished":"removed","archived":"deprecated","active":"active"}'
+```
 
 ## Docker Environment
 

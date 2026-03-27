@@ -19,9 +19,10 @@ package models
 import (
 	"context"
 	"errors"
+	"strings"
+
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	"go.uber.org/zap"
-	"strings"
 )
 
 var defaultPurlType = "github"
@@ -40,7 +41,7 @@ type Component struct {
 	Component string `db:"component"`
 	PurlType  string `db:"purl_type"`
 	PurlName  string `db:"purl_name"`
-	Url       string `db:"-"`
+	URL       string `db:"-"`
 }
 
 func NewComponentModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext, likeOperator string) *ComponentModel {
@@ -50,9 +51,8 @@ func NewComponentModel(ctx context.Context, s *zap.SugaredLogger, q *database.DB
 	return &ComponentModel{ctx: ctx, s: s, q: q, likeOperator: likeOperator}
 }
 
-// preProcessQueryJob Replace the clause #ORDER in the queries (if exist) according to the purlType
+// preProcessQueryJob Replace the clause #ORDER in the queries (if exist) according to the purlType.
 func preProcessQueryJob(qListIn []QueryJob, purlType string) ([]QueryJob, error) {
-
 	if len(qListIn) == 0 {
 		return []QueryJob{}, errors.New("cannot pre process query jobs empty or with limit less than 0")
 	}
@@ -68,7 +68,7 @@ func preProcessQueryJob(qListIn []QueryJob, purlType string) ([]QueryJob, error)
 	}
 
 	for i := range qList {
-		//Adds or remove the ORDER BY clause in SQL query
+		// Adds or remove the ORDER BY clause in SQL query
 		qList[i].Query = strings.Replace(qList[i].Query, "#ORDER", mapPurlTypeToOrderByClause[purlType], 1)
 		qList[i].Query = strings.TrimRight(qList[i].Query, " ")
 	}
@@ -293,24 +293,20 @@ func (m *ComponentModel) GetComponentsByVendorType(vendorName, purlType string, 
 			Args: []any{"%" + vendorName, purlType, 1, offset},
 		},
 	}
-
 	queryJobs, err := preProcessQueryJob(queryJobs, purlType)
 	if err != nil {
 		return []Component{}, err
 	}
-
 	allComponents, _ := RunQueries[Component](m.q, m.ctx, queryJobs)
 	allComponents = RemoveDuplicated[Component](allComponents)
 
 	if limit < len(allComponents) {
 		allComponents = allComponents[:limit]
 	}
-
 	return allComponents, nil
 }
 
 func (m *ComponentModel) GetComponentsByNameVendorType(compName, vendor, purlType string, limit, offset int) ([]Component, error) {
-
 	if len(compName) == 0 || len(vendor) == 0 {
 		m.s.Error("Please specify a valid Component Name to query")
 		return []Component{}, errors.New("please specify a valid component Name to query")

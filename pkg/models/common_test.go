@@ -19,6 +19,8 @@ package models
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
@@ -26,7 +28,6 @@ import (
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	_ "modernc.org/sqlite"
 	myconfig "scanoss.com/components/pkg/config"
-	"testing"
 )
 
 func TestDbLoad(t *testing.T) {
@@ -41,7 +42,7 @@ func TestDbLoad(t *testing.T) {
 		t.Errorf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer CloseDB(db)
-	err = loadSqlData(db, nil, nil, "./tests/mines.sql")
+	err = loadSQLData(db, nil, nil, "./tests/mines.sql")
 	if err != nil {
 		t.Errorf("failed to load SQL test data: %v", err)
 	}
@@ -49,22 +50,21 @@ func TestDbLoad(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to load SQL test data: %v", err)
 	}
-	err = loadSqlData(db, nil, nil, "./tests/does-not-exist.sql")
+	err = loadSQLData(db, nil, nil, "./tests/does-not-exist.sql")
 	if err == nil {
 		t.Errorf("did not fail to load SQL test data")
 	}
-	err = loadTestSqlDataFiles(db, nil, nil, []string{"./tests/does-not-exist.sql"})
+	err = loadTestSQLDataFiles(db, nil, nil, []string{"./tests/does-not-exist.sql"})
 	if err == nil {
 		t.Errorf("did not fail to load SQL test data")
 	}
-	err = loadSqlData(db, nil, nil, "./tests/bad_sql.sql")
+	err = loadSQLData(db, nil, nil, "./tests/bad_sql.sql")
 	if err == nil {
 		t.Errorf("did not fail to load SQL test data")
 	}
 }
 
 func TestRunQueriesInParallel(t *testing.T) {
-
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
@@ -74,8 +74,6 @@ func TestRunQueriesInParallel(t *testing.T) {
 	s := ctxzap.Extract(ctx).Sugar()
 	db := sqliteSetup(t) // Setup SQL Lite DB
 	defer CloseDB(db)
-	//conn := sqliteConn(t, ctx, db) // Get a connection from the pool
-	//defer CloseConn(conn)
 	err = LoadTestSQLData(db, ctx, nil)
 	if err != nil {
 		t.Fatalf("failed to load SQL test data: %v", err)
@@ -101,11 +99,9 @@ func TestRunQueriesInParallel(t *testing.T) {
 		t.Errorf("Error running multiple queries %v", err)
 	}
 	fmt.Printf("Result of running queries %v:\n%v\n ", queryJobs, res)
-
 }
 
 func TestRemoveDuplicates(t *testing.T) {
-
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Errorf("an error '%s' was not expected when opening a sugared logger", err)
@@ -116,28 +112,28 @@ func TestRemoveDuplicates(t *testing.T) {
 		Component: "hyx-decrypt",
 		PurlType:  "npm",
 		PurlName:  "hyx-decrypt",
-		Url:       "",
+		URL:       "",
 	}
 
 	comp1 := Component{
 		Component: "scanner",
 		PurlType:  "npm",
 		PurlName:  "scanner",
-		Url:       "https://www.npmjs.com/package/scanner",
+		URL:       "https://www.npmjs.com/package/scanner",
 	}
 
 	comp1Similar := Component{
 		Component: "scanner",
 		PurlType:  "npm",
 		PurlName:  "scanner",
-		Url:       "www.npmjs.com/package/scanner",
+		URL:       "www.npmjs.com/package/scanner",
 	}
 
 	comp2 := Component{
 		Component: "graph",
 		PurlType:  "npm",
 		PurlName:  "graph",
-		Url:       "https://www.npmjs.com/package/graph",
+		URL:       "https://www.npmjs.com/package/graph",
 	}
 
 	testTable := []struct {

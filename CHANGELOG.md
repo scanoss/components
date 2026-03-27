@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Upcoming changes...
 
+
+## [0.8.0] - 2026-03-27
+### Added
+- Added `GetComponentStatus`/`GetComponentsStatus` services for getting single and multiple development life-cycle information
+- Added support for custom status mapping for _retrieved_ and _registry-specific_ status
+### Changed
+- Using **go-component-helper** to get always the right component version based on user request
+
+
 ## [0.7.0] - 2026-01-30
 ### Added
 - Added database version info (`schema_version`, `created_at`) to `StatusResponse` across all component service endpoints
@@ -38,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.1] - ?
 ### Added
 - ?
-
+[0.8.0]: https://github.com/scanoss/components/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/scanoss/components/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/scanoss/components/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/scanoss/components/compare/v0.4.0...v0.5.0

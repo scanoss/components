@@ -21,8 +21,13 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/scanoss/go-grpc-helper/pkg/files"
 	gd "github.com/scanoss/go-grpc-helper/pkg/grpc/database"
@@ -30,23 +35,22 @@ import (
 	gomodels "github.com/scanoss/go-models/pkg/models"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	_ "modernc.org/sqlite"
-	"net/http"
-	"os"
 	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/protocol/grpc"
 	"scanoss.com/components/pkg/protocol/rest"
 	"scanoss.com/components/pkg/service"
-	"strings"
 )
 
-//TODO: Now the config includes the app version. 
+//TODO: Now the config includes the app version.
 //  This might be worth moving to the file pkg/config/server_config.go
 
 //go:generate bash ../../get_version.sh
 //go:embed version.txt
 var version string
 
-// getConfig checks command line args for option to feed into the config parser
+// getConfig checks command line args for option to feed into the config parser.
+// It performs a two-phase initialization: first loads basic config to get logging settings,
+// then initializes the logger and reloads config with the proper logger for StatusMapper.
 func getConfig() (*myconfig.ServerConfig, error) {
 	var jsonConfig, envConfig string
 	flag.StringVar(&jsonConfig, "json-config", "", "Application JSON config")
@@ -73,20 +77,25 @@ func getConfig() (*myconfig.ServerConfig, error) {
 		}
 	}
 	myConfig, err := myconfig.NewServerConfig(feeders)
+	if err != nil {
+		return nil, err
+	}
+	// Initialize the application logger
+	err = zlog.SetupAppLogger(myConfig.App.Mode, myConfig.Logging.ConfigFile, myConfig.App.Debug)
+	if err != nil {
+		return nil, err
+	}
+	// Initialise the status mapping config
+	myConfig.InitStatusMapperConfig(zlog.S)
 	return myConfig, err
 }
 
-// RunServer runs the gRPC Component Server
+// RunServer runs the gRPC Component Server.
 func RunServer() error {
-	// Load command line options and config
+	// Load command line options and config (logger is initialized inside getConfig)
 	cfg, err := getConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %v", err)
-	}
-
-	err = zlog.SetupAppLogger(cfg.App.Mode, cfg.Logging.ConfigFile, cfg.App.Debug)
-	if err != nil {
-		return err
 	}
 	defer zlog.SyncZap()
 	// Check if TLS/SSL should be enabled
@@ -99,14 +108,12 @@ func RunServer() error {
 	if err != nil {
 		return err
 	}
-
 	// Set the default version from the embedded binary version if not overridden by config/env
 	if len(cfg.App.Version) == 0 {
 		cfg.App.Version = strings.TrimSpace(version)
 	}
 	zlog.S.Infof("Starting SCANOSS Component Service: %v", cfg.App.Version)
-
-	// Setup database connection pool
+	// Set up the database connection pool
 	db, err := gd.OpenDBConnection(cfg.Database.Dsn, cfg.Database.Driver, cfg.Database.User, cfg.Database.Passwd,
 		cfg.Database.Host, cfg.Database.Schema, cfg.Database.SslMode)
 	if err != nil {
@@ -117,17 +124,8 @@ func RunServer() error {
 	}
 	defer gd.CloseDBConnection(db)
 	// Log database version info
-	dbVersionModel := gomodels.NewDBVersionModel(db)
-	dbVersion, dbVersionErr := dbVersionModel.GetCurrentVersion(context.Background())
-	if dbVersionErr != nil {
-		zlog.S.Warnf("Could not read db_version table: %v", dbVersionErr)
-	} else if len(dbVersion.SchemaVersion) > 0 {
-		zlog.S.Infof("Loaded decoration DB: package=%s, schema=%s, created_at=%s",
-			dbVersion.PackageName, dbVersion.SchemaVersion, dbVersion.CreatedAt)
-	} else {
-		zlog.S.Warn("db_version table is empty")
-	}
-	// Setup dynamic logging (if necessary)
+	logDBVersion(db)
+	// Set up dynamic logging (if necessary)
 	zlog.SetupAppDynamicLogging(cfg.Logging.DynamicPort, cfg.Logging.DynamicLogging)
 	// Register the component service
 	v2API := service.NewComponentServer(db, cfg)
@@ -146,4 +144,20 @@ func RunServer() error {
 	}
 	// graceful shutdown
 	return gs.WaitServerComplete(srv, server)
+}
+
+// logDBVersion logs the current version of the database.
+func logDBVersion(db *sqlx.DB) {
+	// Log database version info
+	dbVersionModel := gomodels.NewDBVersionModel(db)
+	dbVersion, dbVersionErr := dbVersionModel.GetCurrentVersion(context.Background())
+	switch {
+	case dbVersionErr != nil:
+		zlog.S.Warnf("Could not read db_version table: %v", dbVersionErr)
+	case len(dbVersion.SchemaVersion) > 0:
+		zlog.S.Infof("Loaded decoration DB: package=%s, schema=%s, created_at=%s",
+			dbVersion.PackageName, dbVersion.SchemaVersion, dbVersion.CreatedAt)
+	default:
+		zlog.S.Warn("db_version table is empty")
+	}
 }

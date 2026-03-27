@@ -21,16 +21,16 @@ package models
 import (
 	"context"
 	"fmt"
-	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	"os"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 )
 
-// loadSqlData Load the specified SQL files into the supplied DB
-func loadSqlData(db *sqlx.DB, ctx context.Context, conn *sqlx.Conn, filename string) error {
+// loadSQLData Load the specified SQL files into the supplied DB.
+func loadSQLData(db *sqlx.DB, ctx context.Context, conn *sqlx.Conn, filename string) error {
 	fmt.Printf("Loading test data file: %v\n", filename)
 	file, err := os.ReadFile(filename)
 	if err != nil {
@@ -47,17 +47,17 @@ func loadSqlData(db *sqlx.DB, ctx context.Context, conn *sqlx.Conn, filename str
 	return nil
 }
 
-// LoadTestSQLData loads all the required test SQL files
+// LoadTestSQLData loads all the required test SQL files.
 func LoadTestSQLData(db *sqlx.DB, ctx context.Context, conn *sqlx.Conn) error {
 	files := []string{"../models/tests/mines.sql", "../models/tests/all_urls.sql", "../models/tests/projects.sql",
 		"../models/tests/licenses.sql", "../models/tests/versions.sql"}
-	return loadTestSqlDataFiles(db, ctx, conn, files)
+	return loadTestSQLDataFiles(db, ctx, conn, files)
 }
 
-// loadTestSqlDataFiles loads a list of test SQL files
-func loadTestSqlDataFiles(db *sqlx.DB, ctx context.Context, conn *sqlx.Conn, files []string) error {
+// loadTestSQLDataFiles loads a list of test SQL files.
+func loadTestSQLDataFiles(db *sqlx.DB, ctx context.Context, conn *sqlx.Conn, files []string) error {
 	for _, file := range files {
-		err := loadSqlData(db, ctx, conn, file)
+		err := loadSQLData(db, ctx, conn, file)
 		if err != nil {
 			return err
 		}
@@ -109,13 +109,13 @@ type QueryJob struct {
 }
 
 type job struct {
-	jobId int
+	jobID int
 	query string
 	args  []any
 }
 
 type result[T any] struct {
-	jobId int
+	jobID int
 	query string
 	err   error
 	dest  []T
@@ -126,7 +126,7 @@ func workerQuery[T any](q *database.DBQueryContext, ctx context.Context, jobs ch
 	for j := range jobs {
 		err := q.SelectContext(ctx, &structResults, j.query, j.args...)
 		results <- result[T]{
-			jobId: j.jobId,
+			jobID: j.jobID,
 			query: j.query,
 			err:   err,
 			dest:  structResults,
@@ -145,7 +145,7 @@ func RunQueries[T any](q *database.DBQueryContext, ctx context.Context, queryJob
 
 	for i, queryJob := range queryJobs {
 		jobChan <- job{
-			jobId: i,
+			jobID: i,
 			query: queryJob.Query,
 			args:  queryJob.Args,
 		}
@@ -156,7 +156,7 @@ func RunQueries[T any](q *database.DBQueryContext, ctx context.Context, queryJob
 	for i := 0; i < numJobs; i++ {
 		res := <-resultChan
 		if res.err == nil {
-			resMap[res.jobId] = res.dest
+			resMap[res.jobID] = res.dest
 		} else {
 			return []T{}, res.err
 		}

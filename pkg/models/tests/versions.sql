@@ -237,6 +237,10 @@ insert into versions (id, version_name, semver) values (11766524, '0.5.14', 'v0.
 insert into versions (id, version_name, semver) values (6854887, '18.0.0-alpha-02f411578-20211019', 'v18.0.0-alpha-02f411578-20211019');
 insert into versions (id, version_name, semver) values (12617765, '0.10.3', '');
 insert into versions (id, version_name, semver) values (6924596, '1.38.0', '');
+-- Test versions with clean semver for component status tests
+insert into versions (id, version_name, semver) values (20000001, '1.99.0', 'v1.99.0');
+insert into versions (id, version_name, semver) values (20000002, '2.99.0', 'v2.99.0');
+insert into versions (id, version_name, semver) values (20000003, '0.99.0', 'v0.99.0');
 insert into versions (id, version_name, semver) values (11401945, '1.0.0rc1', 'v1.0.0-rc1');
 insert into versions (id, version_name, semver) values (3922891, '3.4.0', '');
 insert into versions (id, version_name, semver) values (1318167, '13.5.1', '');

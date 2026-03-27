@@ -19,6 +19,8 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
@@ -27,9 +29,9 @@ import (
 	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/dtos"
 	"scanoss.com/components/pkg/models"
-	"testing"
 )
 
+//goland:noinspection DuplicatedCode
 func TestComponentUseCase_SearchComponents(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -54,7 +56,7 @@ func TestComponentUseCase_SearchComponents(t *testing.T) {
 	}
 	myConfig.Database.Trace = true
 
-	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace))
+	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace), myConfig.GetStatusMapper())
 
 	goodTable := []dtos.ComponentSearchInput{
 		{
@@ -84,11 +86,10 @@ func TestComponentUseCase_SearchComponents(t *testing.T) {
 		fmt.Printf("Component-only search failed as expected: %v\n", err)
 		// This is fine - some component searches may not find exact matches
 	}
-
 }
 
+//goland:noinspection DuplicatedCode
 func TestComponentUseCase_GetComponentVersions(t *testing.T) {
-
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
@@ -111,7 +112,7 @@ func TestComponentUseCase_GetComponentVersions(t *testing.T) {
 		t.Fatalf("failed to load Config: %v", err)
 	}
 
-	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace))
+	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace), myConfig.GetStatusMapper())
 
 	goodTable := []dtos.ComponentVersionsInput{
 		{
@@ -148,6 +149,285 @@ func TestComponentUseCase_GetComponentVersions(t *testing.T) {
 		if err == nil {
 			t.Errorf("an error was expected when getting components version %v\n", err)
 		}
+	}
+}
 
+//goland:noinspection DuplicatedCode
+func TestComponentUseCase_GetComponentStatus(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
+	db, err := sqlx.Connect("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer models.CloseDB(db)
+	err = models.LoadTestSQLData(db, nil, nil)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when loading test data", err)
+	}
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	myConfig.Database.Trace = true
+
+	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace), myConfig.GetStatusMapper())
+
+	// Good test cases
+	goodTable := []dtos.ComponentStatusInput{
+		{
+			Purl:        "pkg:npm/react",
+			Requirement: "^18.0.0",
+		},
+		{
+			Purl:        "pkg:gem/tablestyle",
+			Requirement: ">=0.1.0",
+		},
+	}
+
+	for i, input := range goodTable {
+		statusOut, err := compUc.GetComponentStatus(input)
+		if err != nil {
+			// It's ok if component is not found in test data
+			fmt.Printf("test case %d: Component status not found (may be expected): %v\n", i, err)
+		} else {
+			fmt.Printf("Status response: %+v\n", statusOut)
+			if statusOut.Purl != input.Purl {
+				t.Errorf("Expected purl %v, got %v", input.Purl, statusOut.Purl)
+			}
+		}
+	}
+
+	// Fail test cases
+	failTestTable := []dtos.ComponentStatusInput{
+		{
+			Purl:        "", // Empty purl
+			Requirement: "1.0.0",
+		},
+	}
+
+	for i, input := range failTestTable {
+		_, err := compUc.GetComponentStatus(input)
+		if err == nil {
+			t.Errorf("test case %d: an error was expected for input %+v", i, input)
+		}
+	}
+}
+
+//goland:noinspection DuplicatedCode
+func TestComponentUseCase_GetComponentsStatus(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
+	db, err := sqlx.Connect("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer models.CloseDB(db)
+	err = models.LoadTestSQLData(db, nil, nil)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when loading test data", err)
+	}
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	myConfig.Database.Trace = true
+
+	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace), myConfig.GetStatusMapper())
+
+	// Test with multiple components
+	multipleInput := dtos.ComponentsStatusInput{
+		Components: []dtos.ComponentStatusInput{
+			{
+				Purl:        "pkg:npm/react",
+				Requirement: "^18.0.0",
+			},
+			{
+				Purl:        "pkg:gem/tablestyle",
+				Requirement: ">=0.1.0",
+			},
+			{
+				Purl:        "", // This should fail
+				Requirement: "1.0.0",
+			},
+		},
+	}
+
+	statusOut, err := compUc.GetComponentsStatus(multipleInput)
+	if err != nil {
+		t.Fatalf("Unexpected error getting components status: %v", err)
+	}
+
+	if len(statusOut.Components) != 3 {
+		t.Errorf("Expected 3 component statuses, got %d", len(statusOut.Components))
+	}
+
+	fmt.Printf("Components Status response: %+v\n", statusOut)
+
+	// Test with empty components array
+	emptyInput := dtos.ComponentsStatusInput{
+		Components: []dtos.ComponentStatusInput{},
+	}
+
+	_, err = compUc.GetComponentsStatus(emptyInput)
+	if err == nil {
+		t.Errorf("Expected error for empty components array")
+	}
+}
+
+// TestComponentUseCase_GetComponentStatus_AllCases tests all status code paths.
+//
+//goland:noinspection DuplicatedCode
+func TestComponentUseCase_GetComponentStatus_AllCases(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
+	s := ctxzap.Extract(ctx).Sugar()
+	db, err := sqlx.Connect("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer models.CloseDB(db)
+	err = models.LoadTestSQLData(db, nil, nil)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when loading test data", err)
+	}
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	myConfig.Database.Trace = true
+
+	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace), myConfig.GetStatusMapper())
+
+	testCases := []struct {
+		name             string
+		input            dtos.ComponentStatusInput
+		expectError      bool
+		expectedPurl     string
+		checkStatusCode  bool
+		statusShouldPass bool // true = Success, false = error status
+	}{
+		{
+			name: "Success - Component and version found (react 1.99.0)",
+			input: dtos.ComponentStatusInput{
+				Purl:        "pkg:npm/react",
+				Requirement: "1.99.0",
+			},
+			expectError:      false,
+			expectedPurl:     "pkg:npm/react",
+			checkStatusCode:  true,
+			statusShouldPass: true,
+		},
+		// TODO: Re-enable when go-component-helper fixes NULL handling bug with version constraints
+		// {
+		// 	name: "Success - Component and version found with range (react >=1.0.0)",
+		// 	input: dtos.ComponentStatusInput{
+		// 		Purl:        "pkg:npm/react",
+		// 		Requirement: ">=1.0.0",
+		// 	},
+		// 	expectError:      false,
+		// 	expectedPurl:     "pkg:npm/react",
+		// 	checkStatusCode:  true,
+		// 	statusShouldPass: true,
+		// },
+		{
+			name: "Success - Component and version found (tablestyle 0.99.0)",
+			input: dtos.ComponentStatusInput{
+				Purl:        "pkg:gem/tablestyle",
+				Requirement: "0.99.0",
+			},
+			expectError:      false,
+			expectedPurl:     "pkg:gem/tablestyle",
+			checkStatusCode:  true,
+			statusShouldPass: true,
+		},
+		{
+			name: "VersionNotFound - Component exists but version doesn't",
+			input: dtos.ComponentStatusInput{
+				Purl:        "pkg:npm/react",
+				Requirement: "999.0.0",
+			},
+			expectError:      false,
+			expectedPurl:     "pkg:npm/react",
+			checkStatusCode:  true,
+			statusShouldPass: false,
+		},
+		{
+			name: "ComponentNotFound - Component doesn't exist",
+			input: dtos.ComponentStatusInput{
+				Purl:        "pkg:npm/nonexistent-package-xyz-123",
+				Requirement: "1.0.0",
+			},
+			expectError:      false,
+			expectedPurl:     "pkg:npm/nonexistent-package-xyz-123",
+			checkStatusCode:  true,
+			statusShouldPass: false,
+		},
+		{
+			name: "InvalidPurl - Malformed purl",
+			input: dtos.ComponentStatusInput{
+				Purl:        "invalid-purl-format",
+				Requirement: "1.0.0",
+			},
+			expectError:      false,
+			checkStatusCode:  true,
+			statusShouldPass: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			statusOut, err := compUc.GetComponentStatus(tc.input)
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if tc.expectedPurl != "" && statusOut.Purl != tc.expectedPurl {
+				t.Errorf("Expected purl %v, got %v", tc.expectedPurl, statusOut.Purl)
+			}
+
+			if tc.statusShouldPass {
+				// For successful status, we should have component info
+				if statusOut.Name == "" {
+					t.Errorf("Expected non-empty component name for success case")
+				}
+				if statusOut.ComponentStatus == nil {
+					t.Errorf("Expected ComponentStatus for success case")
+				}
+				fmt.Printf("✓ %s: Success status received\n", tc.name)
+			} else {
+				// For error status, we should have error info
+				if statusOut.ComponentStatus != nil && statusOut.ComponentStatus.ErrorMessage == nil && statusOut.VersionStatus != nil && statusOut.VersionStatus.ErrorMessage == nil {
+					t.Errorf("Expected error message for failure case")
+				}
+				fmt.Printf("✓ %s: Error status received as expected\n", tc.name)
+			}
+		})
 	}
 }

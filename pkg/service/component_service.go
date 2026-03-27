@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2018-2022 SCANOSS.COM
+ * Copyright (C) 2018-2026 SCANOSS.COM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,14 +49,14 @@ func NewComponentServer(db *sqlx.DB, config *myconfig.ServerConfig) pb.Component
 	}
 }
 
-// Echo sends back the same message received
+// Echo sends back the same message received.
 func (d componentServer) Echo(ctx context.Context, request *common.EchoRequest) (*common.EchoResponse, error) {
 	s := ctxzap.Extract(ctx).Sugar()
 	s.Infof("Received (%v): %v", ctx, request.GetMessage())
 	return &common.EchoResponse{Message: request.GetMessage()}, nil
 }
 
-// SearchComponents and retrieves a list of components
+// SearchComponents and retrieves a list of components.
 func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompSearchRequest) (*pb.CompSearchResponse, error) {
 	requestStartTime := time.Now() // Capture the scan start time
 	s := ctxzap.Extract(ctx).Sugar()
@@ -76,7 +76,7 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 	}
 
 	// Search the KB for information about the components
-	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace))
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.GetStatusMapper())
 	dtoComponents, err := compUc.SearchComponents(dtoRequest)
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
@@ -106,18 +106,17 @@ func (d componentServer) SearchComponents(ctx context.Context, request *pb.CompS
 }
 
 func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.CompVersionRequest) (*pb.CompVersionResponse, error) {
-
 	requestStartTime := time.Now() // Capture the scan start time
 	s := ctxzap.Extract(ctx).Sugar()
 	s.Info("Processing component versions request...")
-	//Verify the input request
+	// Verify the input request
 	if len(request.Purl) == 0 {
 		status := se.HandleServiceError(ctx, s, se.NewBadRequestError("No purl supplied", nil))
 		status.Db = d.getDBVersion()
 		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
 		return &pb.CompVersionResponse{Status: status}, nil
 	}
-	//Convert the request to internal DTO
+	// Convert the request to internal DTO
 	dtoRequest, err := convertCompVersionsInput(s, request)
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
@@ -126,7 +125,7 @@ func (d componentServer) GetComponentVersions(ctx context.Context, request *pb.C
 		return &pb.CompVersionResponse{Status: status}, nil
 	}
 	// Creates the use case
-	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace))
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.GetStatusMapper())
 	dtoOutput, err := compUc.GetComponentVersions(dtoRequest)
 	if err != nil {
 		status := se.HandleServiceError(ctx, s, err)
@@ -169,6 +168,75 @@ func telemetryCompVersionRequestTime(ctx context.Context, config *myconfig.Serve
 		elapsedTime := time.Since(requestStartTime).Milliseconds() // Time taken to run the component version request
 		oltpMetrics.compVersionHistogram.Record(ctx, elapsedTime)  // Record dep request time
 	}
+}
+
+// GetComponentStatus retrieves status information for a specific component.
+func (d componentServer) GetComponentStatus(ctx context.Context, request *common.ComponentRequest) (*pb.ComponentStatusResponse, error) {
+	s := ctxzap.Extract(ctx).Sugar()
+	s.Info("Processing component status request...")
+	// Verify the input request
+	if len(request.Purl) == 0 {
+		s.Error("No purl supplied")
+		return &pb.ComponentStatusResponse{}, se.NewBadRequestError("No purl supplied", nil)
+	}
+	// Convert the request to internal DTO
+	dtoRequest, err := convertComponentStatusInput(s, request)
+	if err != nil {
+		s.Errorf("Failed to convert component status input: %v", err)
+		return &pb.ComponentStatusResponse{}, err
+	}
+	// Create the use case
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.GetStatusMapper())
+	dtoOutput, err := compUc.GetComponentStatus(dtoRequest)
+	if err != nil {
+		s.Errorf("Failed to get component status: %v", err)
+		return &pb.ComponentStatusResponse{}, err
+	}
+	// Convert the output to protobuf
+	statusResponse := convertComponentStatusOutput(dtoOutput)
+	return statusResponse, nil
+}
+
+// GetComponentsStatus retrieves status information for multiple components.
+func (d componentServer) GetComponentsStatus(ctx context.Context, request *common.ComponentsRequest) (*pb.ComponentsStatusResponse, error) {
+	s := ctxzap.Extract(ctx).Sugar()
+	s.Info("Processing components status request...")
+	// Verify the input request
+	if len(request.Components) == 0 {
+		status := se.HandleServiceError(ctx, s, se.NewBadRequestError("No components supplied", nil))
+		status.Db = d.getDBVersion()
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
+		return &pb.ComponentsStatusResponse{Status: status}, nil
+	}
+	// Convert the request to internal DTO
+	dtoRequest, err := convertComponentsStatusInput(s, request)
+	if err != nil {
+		status := se.HandleServiceError(ctx, s, err)
+		status.Db = d.getDBVersion()
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
+		return &pb.ComponentsStatusResponse{Status: status}, nil
+	}
+	// Create the use case
+	compUc := usecase.NewComponents(ctx, s, d.db, database.NewDBSelectContext(s, d.db, nil, d.config.Database.Trace), d.config.GetStatusMapper())
+	dtoOutput, err := compUc.GetComponentsStatus(dtoRequest)
+	if err != nil {
+		status := se.HandleServiceError(ctx, s, err)
+		status.Db = d.getDBVersion()
+		status.Server = &common.StatusResponse_Server{Version: d.config.App.Version}
+		return &pb.ComponentsStatusResponse{Status: status}, nil
+	}
+	// Convert the output to protobuf
+	statusResponse := convertComponentsStatusOutput(dtoOutput)
+	// Set the status and respond with the data
+	return &pb.ComponentsStatusResponse{
+		Components: statusResponse.Components,
+		Status: &common.StatusResponse{
+			Status:  common.StatusCode_SUCCESS,
+			Message: "Success",
+			Db:      d.getDBVersion(),
+			Server:  &common.StatusResponse_Server{Version: d.config.App.Version},
+		},
+	}, nil
 }
 
 // getDBVersion fetches the database version from the db_version table.

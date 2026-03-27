@@ -27,29 +27,29 @@ import (
 	"go.uber.org/zap"
 )
 
-type AllUrlsModel struct {
+type AllURLsModel struct {
 	ctx context.Context
 	s   *zap.SugaredLogger
 	q   *database.DBQueryContext
 }
 
-type AllUrl struct {
+type AllURL struct {
 	Version   string         `db:"version"`
 	Component string         `db:"component"`
 	License   string         `db:"license"`
-	LicenseId string         `db:"license_id"`
+	LicenseID string         `db:"license_id"`
 	IsSpdx    bool           `db:"is_spdx"`
 	PurlName  string         `db:"purl_name"`
-	MineId    int32          `db:"mine_id"`
+	MineID    int32          `db:"mine_id"`
 	Date      sql.NullString `db:"date"`
-	Url       string         `db:"-"`
+	URL       string         `db:"-"`
 }
 
-func NewAllUrlModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext) *AllUrlsModel {
-	return &AllUrlsModel{ctx: ctx, s: s, q: q}
+func NewAllURLModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext) *AllURLsModel {
+	return &AllURLsModel{ctx: ctx, s: s, q: q}
 }
 
-func (m *AllUrlsModel) GetUrlsByPurlString(purlString string, limit int) ([]AllUrl, error) {
+func (m *AllURLsModel) GetUrlsByPurlString(purlString string, limit int) ([]AllURL, error) {
 	if len(purlString) == 0 {
 		m.s.Errorf("Please specify a valid Purl String to query")
 		return nil, errors.New("please specify a valid Purl String to query")
@@ -65,7 +65,7 @@ func (m *AllUrlsModel) GetUrlsByPurlString(purlString string, limit int) ([]AllU
 	return m.GetUrlsByPurlNameType(purlName, purl.Type, limit)
 }
 
-func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit int) ([]AllUrl, error) {
+func (m *AllURLsModel) GetUrlsByPurlNameType(purlName, purlType string, limit int) ([]AllURL, error) {
 	if len(purlName) == 0 {
 		m.s.Errorf("Please specify a valid Purl Name to query")
 		return nil, errors.New("please specify a valid Purl Name to query")
@@ -79,7 +79,7 @@ func (m *AllUrlsModel) GetUrlsByPurlNameType(purlName, purlType string, limit in
 		limit = defaultMaxVersionLimit
 	}
 
-	var allUrls []AllUrl
+	var allUrls []AllURL
 	err := m.q.SelectContext(m.ctx, &allUrls,
 		`
 				SELECT DISTINCT 

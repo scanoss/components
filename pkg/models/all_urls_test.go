@@ -18,16 +18,17 @@ package models
 
 import (
 	"context"
+	"testing"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	myconfig "scanoss.com/components/pkg/config"
-	"testing"
 )
 
-// setupTest initializes all necessary components for testing
-func setupTest(t *testing.T) (*sqlx.DB, *sqlx.Conn, *AllUrlsModel) {
+// setupTest initialises all necessary components for testing.
+func setupTest(t *testing.T) (*sqlx.DB, *sqlx.Conn, *AllURLsModel) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
@@ -47,17 +48,17 @@ func setupTest(t *testing.T) (*sqlx.DB, *sqlx.Conn, *AllUrlsModel) {
 	}
 	myConfig.Database.Trace = true
 
-	return db, conn, NewAllUrlModel(ctx, s, database.NewDBSelectContext(s, db, conn, myConfig.Database.Trace))
+	return db, conn, NewAllURLModel(ctx, s, database.NewDBSelectContext(s, db, conn, myConfig.Database.Trace))
 }
 
-// cleanup handles proper resource cleanup
+// cleanup handles proper resource cleanup.
 func cleanup(db *sqlx.DB, conn *sqlx.Conn) {
 	CloseConn(conn)
 	CloseDB(db)
 	zlog.SyncZap()
 }
 
-// TestGetUrlsByPurlNameType tests the GetUrlsByPurlNameType function
+// TestGetUrlsByPurlNameType tests the GetUrlsByPurlNameType function.
 func TestGetUrlsByPurlNameType(t *testing.T) {
 	db, conn, allUrlsModel := setupTest(t)
 	defer cleanup(db, conn)
@@ -69,7 +70,7 @@ func TestGetUrlsByPurlNameType(t *testing.T) {
 		limit     int
 		wantErr   bool
 		wantEmpty bool
-		validate  func(t *testing.T, urls []AllUrl)
+		validate  func(t *testing.T, urls []AllURL)
 	}{
 		{
 			name:      "valid url search",
@@ -78,7 +79,7 @@ func TestGetUrlsByPurlNameType(t *testing.T) {
 			limit:     -1,
 			wantErr:   false,
 			wantEmpty: false,
-			validate: func(t *testing.T, urls []AllUrl) {
+			validate: func(t *testing.T, urls []AllURL) {
 				if urls[0].PurlName != "tablestyle" {
 					t.Errorf("expected purlName 'tablestyle', got %s", urls[0].PurlName)
 				}
@@ -91,9 +92,9 @@ func TestGetUrlsByPurlNameType(t *testing.T) {
 			limit:     200,
 			wantErr:   false,
 			wantEmpty: false,
-			validate: func(t *testing.T, urls []AllUrl) {
+			validate: func(t *testing.T, urls []AllURL) {
 				// Filter URLs for specific version
-				var matchedUrls []AllUrl
+				var matchedUrls []AllURL
 				for _, url := range urls {
 					if url.PurlName == "grpcio" && url.Version == "1.12.1" {
 						matchedUrls = append(matchedUrls, url)
@@ -181,7 +182,7 @@ func TestGetUrlsByPurlNameType(t *testing.T) {
 	}
 }
 
-// TestGetUrlsByPurlString tests the GetUrlsByPurlString function
+// TestGetUrlsByPurlString tests the GetUrlsByPurlString function.
 func TestGetUrlsByPurlString(t *testing.T) {
 	db, conn, allUrlsModel := setupTest(t)
 	defer cleanup(db, conn)
@@ -192,7 +193,7 @@ func TestGetUrlsByPurlString(t *testing.T) {
 		limit      int
 		wantErr    bool
 		wantEmpty  bool
-		validate   func(t *testing.T, urls []AllUrl)
+		validate   func(t *testing.T, urls []AllURL)
 	}{
 		{
 			name:       "valid purl",
@@ -200,7 +201,7 @@ func TestGetUrlsByPurlString(t *testing.T) {
 			limit:      -1,
 			wantErr:    false,
 			wantEmpty:  false,
-			validate: func(t *testing.T, urls []AllUrl) {
+			validate: func(t *testing.T, urls []AllURL) {
 				if urls[0].PurlName != "tablestyle" {
 					t.Errorf("expected purlName 'tablestyle', got %s", urls[0].PurlName)
 				}

@@ -19,18 +19,22 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"reflect"
+	"testing"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	common "github.com/scanoss/papi/api/commonv2"
 	pb "github.com/scanoss/papi/api/componentsv2"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	_ "modernc.org/sqlite"
-	"reflect"
 	myconfig "scanoss.com/components/pkg/config"
 	"scanoss.com/components/pkg/models"
-	"testing"
 )
 
+const appVersion = "test-version"
+
+//goland:noinspection DuplicatedCode
 func TestComponentServer_Echo(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -48,7 +52,7 @@ func TestComponentServer_Echo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	myConfig.App.Version = "test-version"
+	myConfig.App.Version = appVersion
 	s := NewComponentServer(db, myConfig)
 
 	type args struct {
@@ -86,6 +90,7 @@ func TestComponentServer_Echo(t *testing.T) {
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func TestComponentServer_SearchComponents(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -107,7 +112,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	myConfig.App.Version = "test-version"
+	myConfig.App.Version = appVersion
 	s := NewComponentServer(db, myConfig)
 
 	var compRequestData = `{
@@ -139,7 +144,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 				ctx: ctx,
 				req: &compReq,
 			},
-			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No components found matching the search criteria", Server: &common.StatusResponse_Server{Version: "test-version"}}},
+			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No components found matching the search criteria", Server: &common.StatusResponse_Server{Version: appVersion}}},
 		},
 		{
 			name: "Search for a empty request",
@@ -148,7 +153,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 				ctx: ctx,
 				req: &pb.CompSearchRequest{},
 			},
-			want:    &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No data supplied", Server: &common.StatusResponse_Server{Version: "test-version"}}},
+			want:    &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No data supplied", Server: &common.StatusResponse_Server{Version: appVersion}}},
 			wantErr: false,
 		},
 	}
@@ -167,6 +172,7 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func TestComponentServer_GetComponentVersions(t *testing.T) {
 	err := zlog.NewSugaredDevLogger()
 	if err != nil {
@@ -188,7 +194,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load Config: %v", err)
 	}
-	myConfig.App.Version = "test-version"
+	myConfig.App.Version = appVersion
 	s := NewComponentServer(db, myConfig)
 
 	var compVersionRequestData = `{
@@ -219,7 +225,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 				ctx: ctx,
 				req: &compVersionReq,
 			},
-			want: &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success", Server: &common.StatusResponse_Server{Version: "test-version"}}},
+			want: &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success", Server: &common.StatusResponse_Server{Version: appVersion}}},
 		},
 		{
 			name: "Search for a empty request",
@@ -228,7 +234,7 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 				ctx: ctx,
 				req: &pb.CompVersionRequest{},
 			},
-			want:    &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No purl supplied", Server: &common.StatusResponse_Server{Version: "test-version"}}},
+			want:    &pb.CompVersionResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No purl supplied", Server: &common.StatusResponse_Server{Version: appVersion}}},
 			wantErr: false,
 		},
 	}
@@ -242,6 +248,84 @@ func TestComponentServer_GetComponentVersions(t *testing.T) {
 			}
 			if err == nil && !reflect.DeepEqual(got.Status, tt.want.Status) {
 				t.Errorf("service.GetComponentVersions() status = %v, want %v", got.Status, tt.want.Status)
+			}
+		})
+	}
+}
+
+//goland:noinspection DuplicatedCode
+func TestComponentServer_GetComponentStatus(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+	}
+	defer zlog.SyncZap()
+	ctx := context.Background()
+	ctx = ctxzap.ToContext(ctx, zlog.L)
+	db, err := sqlx.Connect("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer models.CloseDB(db)
+	err = models.LoadTestSQLData(db, nil, nil)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when loading test data", err)
+	}
+	myConfig, err := myconfig.NewServerConfig(nil)
+	if err != nil {
+		t.Fatalf("failed to load Config: %v", err)
+	}
+	myConfig.App.Version = appVersion
+	s := NewComponentServer(db, myConfig)
+
+	type args struct {
+		ctx context.Context
+		req *common.ComponentRequest
+	}
+	tests := []struct {
+		name    string
+		s       pb.ComponentsServer
+		args    args
+		wantErr bool
+		checkFn func(*testing.T, *pb.ComponentStatusResponse)
+	}{
+		{
+			name: "Get status for react npm package",
+			s:    s,
+			args: args{
+				ctx: ctx,
+				req: &common.ComponentRequest{
+					Purl:        "pkg:npm/react",
+					Requirement: "^18.0.0",
+				},
+			},
+			wantErr: false,
+			checkFn: func(t *testing.T, resp *pb.ComponentStatusResponse) {
+				if resp == nil {
+					t.Error("Expected non-nil response")
+				}
+			},
+		},
+		{
+			name: "Get status with empty purl",
+			s:    s,
+			args: args{
+				ctx: ctx,
+				req: &common.ComponentRequest{},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.GetComponentStatus(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("service.GetComponentStatus() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.checkFn != nil && err == nil {
+				tt.checkFn(t, got)
 			}
 		})
 	}

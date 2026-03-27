@@ -3,10 +3,11 @@ package dtos
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
-	"testing"
 )
 
 func TestParseComponentVersionsInput(t *testing.T) {
@@ -96,5 +97,4 @@ func TestExportComponentVersionsInput(t *testing.T) {
 		t.Errorf("Failed to export component version input: %v\n", err)
 	}
 	fmt.Printf("Converting empty component version input json to bytes: %v\n", bytes)
-
 }
