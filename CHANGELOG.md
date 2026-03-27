@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upcoming changes...
 
 
-## [0.8.0] - 2026-03-20
+## [0.8.0] - 2026-03-27
 ### Added
 - Added `GetComponentStatus`/`GetComponentsStatus` services for getting single and multiple development life-cycle information
 - Added support for custom status mapping for _retrieved_ and _registry-specific_ status
