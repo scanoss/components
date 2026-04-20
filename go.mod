@@ -7,18 +7,18 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/lib/pq v1.12.0
-	github.com/scanoss/go-component-helper v0.5.0
-	github.com/scanoss/go-grpc-helper v0.13.0
-	github.com/scanoss/go-models v0.7.0
+	github.com/lib/pq v1.12.3
+	github.com/scanoss/go-component-helper v0.6.0
+	github.com/scanoss/go-grpc-helper v0.15.1
+	github.com/scanoss/go-models v0.9.0
 	github.com/scanoss/go-purl-helper v0.3.0
-	github.com/scanoss/papi v0.33.0
+	github.com/scanoss/papi v0.35.0
 	github.com/scanoss/zap-logging-helper v0.4.0
-	go.opentelemetry.io/otel v1.42.0
-	go.opentelemetry.io/otel/metric v1.42.0
+	go.opentelemetry.io/otel v1.43.0
+	go.opentelemetry.io/otel/metric v1.43.0
 	go.uber.org/zap v1.27.1
-	google.golang.org/grpc v1.79.3
-	modernc.org/sqlite v1.47.0
+	google.golang.org/grpc v1.80.0
+	modernc.org/sqlite v1.49.1
 )
 
 // replace github.com/scanoss/papi => ../papi
@@ -51,7 +51,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.40.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.40.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.40.0 // indirect
-	go.opentelemetry.io/otel/trace v1.42.0 // indirect
+	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
@@ -61,7 +61,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.70.0 // indirect
+	modernc.org/libc v1.72.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
@@ -71,7 +71,4 @@ require (
 // ie.
 //replace github.com/scanoss/papi => ../papi
 
-//replace github.com/scanoss/go-component-helper/componenthelper => ../go-component-helper
-
-// require github.com/scanoss/papi v0.0.0-unpublished
-//replace 	github.com/scanoss/go-grpc-helper v0.6.0 => ../go-grpc-helper
+// replace github.com/scanoss/papi  => ../papi
