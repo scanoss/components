@@ -35,6 +35,7 @@ local-build-commands.txt
 *.zip
 
 .idea
+.DS_Store
 
 config/*test*
 
