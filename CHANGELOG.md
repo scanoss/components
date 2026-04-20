@@ -6,8 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.9.0] - 2026-04-21
 ### Changed
 - Updated dependencies to the latest versions
+- **BREAKING CHANGE:** Replaced `ErrorMessage`/`ErrorCode` with `InfoMessage`/`InfoCode` in `ComponentStatusResponse` for component and version status fields
 
 ## [0.8.0] - 2026-03-27
 ### Added
@@ -43,9 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### updated
 - Updated project dependencies to latest versions
 
-## [0.0.1] - ?
-### Added
-- ?
+
+[0.9.0]: https://github.com/scanoss/components/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/scanoss/components/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/scanoss/components/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/scanoss/components/compare/v0.5.0...v0.6.0

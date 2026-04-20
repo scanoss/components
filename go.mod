@@ -12,7 +12,7 @@ require (
 	github.com/scanoss/go-grpc-helper v0.15.1
 	github.com/scanoss/go-models v0.9.0
 	github.com/scanoss/go-purl-helper v0.3.0
-	github.com/scanoss/papi v0.35.0
+	github.com/scanoss/papi v0.42.0
 	github.com/scanoss/zap-logging-helper v0.4.0
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/metric v1.43.0
@@ -70,5 +70,3 @@ require (
 // https://github.com/golang/go/wiki/Modules#when-should-i-use-the-replace-directive
 // ie.
 //replace github.com/scanoss/papi => ../papi
-
-// replace github.com/scanoss/papi  => ../papi

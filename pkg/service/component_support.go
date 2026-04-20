@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/scanoss/go-grpc-helper/pkg/grpc/domain"
 	pb "github.com/scanoss/papi/api/componentsv2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
@@ -167,9 +166,11 @@ func convertComponentStatusOutput(output dtos.ComponentStatusOutput) *pb.Compone
 		}
 		response.Name = output.Name
 	} else {
+		msg := output.ComponentStatus.ErrorMessage
+		code := output.ComponentStatus.ErrorCode.String()
 		response.ComponentStatus = &pb.ComponentStatusResponse_ComponentStatus{
-			ErrorMessage: output.ComponentStatus.ErrorMessage,
-			ErrorCode:    domain.StatusCodeToErrorCode(*output.ComponentStatus.ErrorCode),
+			InfoMessage: msg,
+			InfoCode:    &code,
 		}
 		return response
 	}
@@ -185,10 +186,12 @@ func convertComponentStatusOutput(output dtos.ComponentStatusOutput) *pb.Compone
 				response.VersionStatus.StatusChangeDate = output.VersionStatus.StatusChangeDate
 			}
 		} else {
+			msg := output.ComponentStatus.ErrorMessage
+			code := output.ComponentStatus.ErrorCode.String()
 			response.VersionStatus = &pb.ComponentStatusResponse_VersionStatus{
-				Version:      output.VersionStatus.Version,
-				ErrorMessage: output.VersionStatus.ErrorMessage,
-				ErrorCode:    domain.StatusCodeToErrorCode(*output.VersionStatus.ErrorCode),
+				Version:     output.VersionStatus.Version,
+				InfoMessage: msg,
+				InfoCode:    &code,
 			}
 		}
 	}
