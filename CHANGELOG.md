@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-30
+### Added
+- Enhanced component search to recover missing components
+### Changed
+- Updated dependencies to the latest versions
+
 ## [0.9.0] - 2026-04-21
 ### Changed
 - Updated dependencies to the latest versions
@@ -47,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated project dependencies to latest versions
 
 
+[0.10.0]: https://github.com/scanoss/components/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/scanoss/components/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/scanoss/components/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/scanoss/components/compare/v0.6.0...v0.7.0

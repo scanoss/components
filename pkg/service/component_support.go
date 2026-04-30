@@ -186,8 +186,8 @@ func convertComponentStatusOutput(output dtos.ComponentStatusOutput) *pb.Compone
 				response.VersionStatus.StatusChangeDate = output.VersionStatus.StatusChangeDate
 			}
 		} else {
-			msg := output.ComponentStatus.ErrorMessage
-			code := output.ComponentStatus.ErrorCode.String()
+			msg := output.VersionStatus.ErrorMessage
+			code := output.VersionStatus.ErrorCode.String()
 			response.VersionStatus = &pb.ComponentStatusResponse_VersionStatus{
 				Version:     output.VersionStatus.Version,
 				InfoMessage: msg,
