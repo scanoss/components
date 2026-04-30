@@ -8,15 +8,15 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.12.3
-	github.com/scanoss/go-component-helper v0.6.0
+	github.com/scanoss/go-component-helper v0.7.0
 	github.com/scanoss/go-grpc-helper v0.15.1
-	github.com/scanoss/go-models v0.9.0
+	github.com/scanoss/go-models v0.10.0
 	github.com/scanoss/go-purl-helper v0.3.0
 	github.com/scanoss/papi v0.42.0
 	github.com/scanoss/zap-logging-helper v0.4.0
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/metric v1.43.0
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	google.golang.org/grpc v1.80.0
 	modernc.org/sqlite v1.49.1
 )
@@ -25,7 +25,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -65,8 +65,3 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
-
-// Details of how to use the "replace" command for local development
-// https://github.com/golang/go/wiki/Modules#when-should-i-use-the-replace-directive
-// ie.
-//replace github.com/scanoss/papi => ../papi
