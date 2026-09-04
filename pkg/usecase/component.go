@@ -29,9 +29,11 @@ import (
 	purlhelper "github.com/scanoss/go-purl-helper/pkg"
 	"go.uber.org/zap"
 	"scanoss.com/components/pkg/config"
+	scanossdb "scanoss.com/components/pkg/db"
 	"scanoss.com/components/pkg/dtos"
 	se "scanoss.com/components/pkg/errors"
 	"scanoss.com/components/pkg/models"
+	"scanoss.com/components/pkg/resolver"
 )
 
 type ComponentUseCase struct {
@@ -39,20 +41,32 @@ type ComponentUseCase struct {
 	s               *zap.SugaredLogger
 	q               *database.DBQueryContext
 	components      *models.ComponentModel
-	allURL          *models.AllURLsModel
+	versions        *models.ComponentVersionsModel
 	componentStatus *models.ComponentStatusModel
+	resolver        *resolver.Resolver
 	db              *sqlx.DB
 	statusMapper    *config.StatusMapper
 }
 
 func NewComponents(ctx context.Context, s *zap.SugaredLogger, db *sqlx.DB, q *database.DBQueryContext, statusMapper *config.StatusMapper) *ComponentUseCase {
 	return &ComponentUseCase{ctx: ctx, s: s, q: q,
-		components:      models.NewComponentModel(ctx, s, q, database.GetLikeOperator(db)),
-		allURL:          models.NewAllURLModel(ctx, s, q),
-		componentStatus: models.NewComponentStatusModel(ctx, s, q),
+		components:      models.NewComponentModel(ctx, s, q, db, likeOperator(db)),
+		versions:        models.NewComponentVersionsModel(ctx, s, q, db),
+		componentStatus: models.NewComponentStatusModel(ctx, s, q, db),
+		resolver:        resolver.New(s, db),
 		db:              db,
 		statusMapper:    statusMapper,
 	}
+}
+
+// likeOperator picks the case-insensitive LIKE for the backend. go-grpc-helper's
+// GetLikeOperator only knows postgres and sqlite, and warns on anything else;
+// duckdb behaves like sqlite here, so it is named explicitly.
+func likeOperator(db *sqlx.DB) string {
+	if db != nil && db.DriverName() == scanossdb.DriverPostgres {
+		return "ILIKE"
+	}
+	return "LIKE"
 }
 
 func (c ComponentUseCase) SearchComponents(request dtos.ComponentSearchInput) (dtos.ComponentsSearchOutput, error) {
@@ -95,9 +109,14 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 		c.s.Errorf("The request does not contains purl to retrieve component versions")
 		return dtos.ComponentVersionsOutput{}, errors.New("the request does not contains purl to retrieve component versions")
 	}
-	allUrls, err := c.allURL.GetUrlsByPurlString(request.Purl, request.Limit)
+	resolved, err := c.resolver.Resolve(c.ctx, request.Purl, "")
 	if err != nil {
-		c.s.Errorf("Problem encountered gettings URLs versions for: %v - %v.", request.Purl, err)
+		c.s.Errorf("Problem encountered resolving component for: %v - %v.", request.Purl, err)
+		return dtos.ComponentVersionsOutput{}, se.NewNotFoundError(fmt.Sprintf("purl: '%v' not found", request.Purl))
+	}
+	allUrls, err := c.versions.GetVersionsByPurlID(resolved.PurlID, request.Limit)
+	if err != nil {
+		c.s.Errorf("Problem encountered getting versions for: %v - %v.", request.Purl, err)
 		return dtos.ComponentVersionsOutput{}, err
 	}
 	purl, err := purlhelper.PurlFromString(request.Purl)
@@ -152,15 +171,8 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 		c.s.Errorf("The request does not contain purl to retrieve component status")
 		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("purl is required", errors.New("purl is required"))
 	}
-	results := cmpHelper.GetComponentsVersion(cmpHelper.ComponentVersionCfg{
-		MaxWorkers: 1,
-		Ctx:        c.ctx,
-		S:          c.s,
-		DB:         c.db,
-		Input: []cmpHelper.ComponentDTO{
-			{Purl: request.Purl, Requirement: request.Requirement},
-		},
-	})
+	results := resolver.ResolveComponents(c.ctx, c.s, c.resolver,
+		[]cmpHelper.ComponentDTO{{Purl: request.Purl, Requirement: request.Requirement}}, 1)
 	if len(results) > 0 {
 		return c.handleComponentStatusResult(request, results[0])
 	}
@@ -168,7 +180,7 @@ func (c ComponentUseCase) GetComponentStatus(request dtos.ComponentStatusInput) 
 }
 
 // handleComponentStatusResult routes the component status result to the appropriate handler based on status code.
-func (c ComponentUseCase) handleComponentStatusResult(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
+func (c ComponentUseCase) handleComponentStatusResult(request dtos.ComponentStatusInput, result resolver.Resolution) (dtos.ComponentStatusOutput, error) {
 	//nolint:exhaustive
 	switch result.Status.StatusCode {
 	case domain.Success:
@@ -183,8 +195,8 @@ func (c ComponentUseCase) handleComponentStatusResult(request dtos.ComponentStat
 }
 
 // handleSuccessStatus handles the case where both component and version are found.
-func (c ComponentUseCase) handleSuccessStatus(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
-	statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(result.Purl)
+func (c ComponentUseCase) handleSuccessStatus(request dtos.ComponentStatusInput, result resolver.Resolution) (dtos.ComponentStatusOutput, error) {
+	statComponent, errComp := c.componentStatus.GetComponentStatusByPurlID(result.PurlID)
 	if errComp != nil {
 		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("error retrieving Component level data", errors.New("error retrieving Component Level Data"))
 	}
@@ -203,8 +215,8 @@ func (c ComponentUseCase) handleSuccessStatus(request dtos.ComponentStatusInput,
 }
 
 // handleVersionNotFound handles the case where component exists but the version is not found.
-func (c ComponentUseCase) handleVersionNotFound(request dtos.ComponentStatusInput, result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
-	statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(result.Purl)
+func (c ComponentUseCase) handleVersionNotFound(request dtos.ComponentStatusInput, result resolver.Resolution) (dtos.ComponentStatusOutput, error) {
+	statComponent, errComp := c.componentStatus.GetComponentStatusByPurlID(result.PurlID)
 	if errComp != nil {
 		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("error retrieving information", errors.New("error retrieving information"))
 	}
@@ -222,7 +234,7 @@ func (c ComponentUseCase) handleVersionNotFound(request dtos.ComponentStatusInpu
 }
 
 // handleErrorStatus handles error cases like InvalidPurl or ComponentNotFound.
-func (c ComponentUseCase) handleErrorStatus(result cmpHelper.Component) (dtos.ComponentStatusOutput, error) {
+func (c ComponentUseCase) handleErrorStatus(result resolver.Resolution) (dtos.ComponentStatusOutput, error) {
 	return dtos.ComponentStatusOutput{
 		Purl:        result.Purl,
 		Name:        "",
@@ -249,13 +261,13 @@ func (c ComponentUseCase) buildComponentStatusInfo(statComponent *models.Compone
 }
 
 // getVersionStatus retrieves version-specific status information.
-func (c ComponentUseCase) getVersionStatus(purl string, result cmpHelper.Component) *models.ComponentVersionStatus {
+func (c ComponentUseCase) getVersionStatus(purl string, result resolver.Resolution) *models.ComponentVersionStatus {
 	var statusVersion *models.ComponentVersionStatus
 	var errVersion error
 	if len(result.Version) > 0 {
-		statusVersion, errVersion = c.componentStatus.GetComponentStatusByPurlAndVersion(purl, result.Version)
+		statusVersion, errVersion = c.componentStatus.GetVersionStatusByPurlID(result.PurlID, result.Version)
 	} else if len(result.Requirement) > 0 {
-		statusVersion, errVersion = c.componentStatus.GetComponentStatusByPurlAndVersion(purl, result.Requirement)
+		statusVersion, errVersion = c.componentStatus.GetVersionStatusByPurlID(result.PurlID, result.Requirement)
 	}
 	if errVersion != nil {
 		c.s.Warnf("Problems getting version level status data for: %v - %v", purl, errVersion)

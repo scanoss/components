@@ -42,7 +42,11 @@ func TestDbLoad(t *testing.T) {
 		t.Errorf("an error '%s' was not expected when opening a sugared logger", err)
 	}
 	defer CloseDB(db)
-	err = loadSQLData(db, nil, nil, "./tests/mines.sql")
+	// The fixtures carry data only, so the schema has to exist first.
+	if err = LoadTestSchema(db, nil, nil); err != nil {
+		t.Fatalf("failed to load the test schema: %v", err)
+	}
+	err = loadSQLData(db, nil, nil, "./tests/component.sql")
 	if err != nil {
 		t.Errorf("failed to load SQL test data: %v", err)
 	}
@@ -87,10 +91,10 @@ func TestRunQueriesInParallel(t *testing.T) {
 
 	queryJobs := []QueryJob{
 		{
-			Query: "SELECT component, purl_name, m.purl_type FROM projects p " +
-				" LEFT JOIN mines m ON p.mine_id = m.id" +
-				" WHERE p.component LIKE $1" +
-				" LIMIT $2",
+			Query: db.Rebind("SELECT c.purl AS purl, c.component AS component" +
+				" FROM component c LEFT JOIN component_metrics cm ON cm.purl_id = c.purl_id" +
+				" WHERE c.component LIKE ?" +
+				" LIMIT ?"),
 			Args: []any{"%angular%", 2},
 		},
 	}

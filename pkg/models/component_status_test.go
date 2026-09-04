@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2018-2022 SCANOSS.COM
+ * Copyright (C) 2018-2025 SCANOSS.COM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,215 +18,118 @@ package models
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
-	_ "modernc.org/sqlite"
-	myconfig "scanoss.com/components/pkg/config"
 )
 
-// TestGetComponentStatusByPurlAndVersion tests retrieving status for a specific component version.
-//
-//goland:noinspection DuplicatedCode
-func TestGetComponentStatusByPurlAndVersion(t *testing.T) {
-	err := zlog.NewSugaredDevLogger()
-	if err != nil {
+func setupStatusModel(t *testing.T) (*sqlx.DB, *ComponentStatusModel) {
+	t.Helper()
+	if err := zlog.NewSugaredDevLogger(); err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
 	}
-	defer zlog.SyncZap()
-	ctx := ctxzap.ToContext(context.Background(), zlog.L)
-	s := ctxzap.Extract(ctx).Sugar()
+	ctx := context.Background()
 	db := sqliteSetup(t)
-	defer CloseDB(db)
-	conn := sqliteConn(t, ctx, db)
-	defer CloseConn(conn)
-	err = LoadTestSQLData(db, ctx, conn)
-	if err != nil {
+	if err := LoadTestSQLData(db, ctx, nil); err != nil {
 		t.Fatalf("failed to load SQL test data: %v", err)
 	}
-	myConfig, err := myconfig.NewServerConfig(nil)
-	if err != nil {
-		t.Fatalf("failed to load Config: %v", err)
-	}
-	myConfig.Database.Trace = true
-
-	componentStatusModel := NewComponentStatusModel(ctx, s, database.NewDBSelectContext(s, db, conn, myConfig.Database.Trace))
-
-	// Test cases that should pass
-	passTestTable := []struct {
-		purl    string
-		version string
-	}{
-		{
-			purl:    "pkg:npm/react",
-			version: "18.0.0",
-		},
-		{
-			purl:    "pkg:gem/tablestyle",
-			version: "0.1.0",
-		},
-	}
-
-	for _, test := range passTestTable {
-		fmt.Printf("Testing purl: %v, version: %v\n", test.purl, test.version)
-		status, err := componentStatusModel.GetComponentStatusByPurlAndVersion(test.purl, test.version)
-		if err != nil {
-			// It's ok if we don't find the specific version in test data
-			fmt.Printf("Version not found (expected): %v\n", err)
-		} else {
-			fmt.Printf("Status: %+v\n", status)
-		}
-	}
-
-	// Test cases that should fail
-	failTestTable := []struct {
-		purl    string
-		version string
-	}{
-		{
-			purl:    "", // Empty purl
-			version: "1.0.0",
-		},
-		{
-			purl:    "invalid-purl", // Invalid purl format
-			version: "1.0.0",
-		},
-	}
-
-	for _, test := range failTestTable {
-		_, err := componentStatusModel.GetComponentStatusByPurlAndVersion(test.purl, test.version)
-		if err == nil {
-			t.Errorf("An error was expected for purl: %v, version: %v", test.purl, test.version)
-		}
-	}
+	q := database.NewDBSelectContext(zlog.S, db, nil, false)
+	return db, NewComponentStatusModel(ctx, zlog.S, q, db)
 }
 
-// TestGetComponentStatusByPurl tests retrieving status for a component (without version).
-//
-//goland:noinspection DuplicatedCode
-func TestGetComponentStatusByPurl(t *testing.T) {
-	err := zlog.NewSugaredDevLogger()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
+// firstVersionOf returns a version the fixture records for a component, so the
+// version-level assertions do not hardcode one.
+func firstVersionOf(t *testing.T, db *sqlx.DB, purlID string) string {
+	t.Helper()
+	var version string
+	if err := db.Get(&version,
+		"SELECT version FROM component_version WHERE purl_id = ? AND version <> '' LIMIT 1", purlID); err != nil {
+		t.Fatalf("the fixture has no version for %s: %v", purlID, err)
 	}
-	defer zlog.SyncZap()
-	ctx := ctxzap.ToContext(context.Background(), zlog.L)
-	s := ctxzap.Extract(ctx).Sugar()
-	db := sqliteSetup(t)
-	defer CloseDB(db)
-	conn := sqliteConn(t, ctx, db)
-	defer CloseConn(conn)
-	err = LoadTestSQLData(db, ctx, conn)
-	if err != nil {
-		t.Fatalf("failed to load SQL test data: %v", err)
-	}
-	myConfig, err := myconfig.NewServerConfig(nil)
-	if err != nil {
-		t.Fatalf("failed to load Config: %v", err)
-	}
-	myConfig.Database.Trace = true
-
-	componentStatusModel := NewComponentStatusModel(ctx, s, database.NewDBSelectContext(s, db, conn, myConfig.Database.Trace))
-
-	// Test cases that should pass
-	passTestTable := []struct {
-		purl string
-	}{
-		{purl: "pkg:npm/react"},
-		{purl: "pkg:gem/tablestyle"},
-	}
-
-	for _, test := range passTestTable {
-		fmt.Printf("Testing purl: %v\n", test.purl)
-		status, err := componentStatusModel.GetComponentStatusByPurl(test.purl)
-		if err != nil {
-			fmt.Printf("Component not found (may be expected): %v\n", err)
-		} else {
-			fmt.Printf("Status: %+v\n", status)
-		}
-	}
-
-	// Test cases that should fail
-	failTestTable := []struct {
-		purl string
-	}{
-		{purl: ""},                // Empty purl
-		{purl: "invalid-purl"},    // Invalid purl format
-		{purl: "pkg:npm/NOEXIST"}, // Non-existent component
-	}
-
-	for _, test := range failTestTable {
-		_, err := componentStatusModel.GetComponentStatusByPurl(test.purl)
-		if err == nil {
-			t.Errorf("An error was expected for purl: %v", test.purl)
-		}
-	}
+	return version
 }
 
-// TestGetProjectStatusByPurl tests retrieving project-level status only (no version info).
-//
-//goland:noinspection DuplicatedCode
-func TestGetProjectStatusByPurl(t *testing.T) {
-	err := zlog.NewSugaredDevLogger()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a sugared logger", err)
-	}
-	defer zlog.SyncZap()
-	ctx := ctxzap.ToContext(context.Background(), zlog.L)
-	s := ctxzap.Extract(ctx).Sugar()
-	db := sqliteSetup(t)
+func TestGetComponentStatusByPurlID(t *testing.T) {
+	db, model := setupStatusModel(t)
 	defer CloseDB(db)
-	conn := sqliteConn(t, ctx, db)
-	defer CloseConn(conn)
-	err = LoadTestSQLData(db, ctx, conn)
-	if err != nil {
-		t.Fatalf("failed to load SQL test data: %v", err)
-	}
-	myConfig, err := myconfig.NewServerConfig(nil)
-	if err != nil {
-		t.Fatalf("failed to load Config: %v", err)
-	}
-	myConfig.Database.Trace = true
+	defer zlog.SyncZap()
 
-	componentStatusModel := NewComponentStatusModel(ctx, s, database.NewDBSelectContext(s, db, conn, myConfig.Database.Trace))
-
-	// Test cases that should pass
-	passTestTable := []struct {
-		purl string
-	}{
-		{purl: "pkg:npm/react"},
-		{purl: "pkg:gem/tablestyle"},
-	}
-
-	for _, test := range passTestTable {
-		fmt.Printf("Testing project status for purl: %v\n", test.purl)
-		status, err := componentStatusModel.GetProjectStatusByPurl(test.purl)
+	t.Run("known component", func(t *testing.T) {
+		status, err := model.GetComponentStatusByPurlID(tablestyleID)
 		if err != nil {
-			fmt.Printf("Component not found (may be expected): %v\n", err)
-		} else {
-			fmt.Printf("Project Status: %+v\n", status)
-			if status.Component == "" {
-				t.Errorf("Expected non-empty component name for purl: %v", test.purl)
-			}
+			t.Fatalf("GetComponentStatusByPurlID error = %v", err)
 		}
-	}
-
-	// Test cases that should fail
-	failTestTable := []struct {
-		purl string
-	}{
-		{purl: ""},                // Empty purl
-		{purl: "invalid-purl"},    // Invalid purl format
-		{purl: "pkg:npm/NOEXIST"}, // Non-existent component
-	}
-
-	for _, test := range failTestTable {
-		_, err := componentStatusModel.GetProjectStatusByPurl(test.purl)
-		if err == nil {
-			t.Errorf("An error was expected for purl: %v", test.purl)
+		if status.PurlName != tablestylePurl {
+			t.Errorf("purl = %q, want %q", status.PurlName, tablestylePurl)
 		}
+		if status.Component == "" {
+			t.Error("status came back without the component name")
+		}
+		if !status.Status.Valid || status.Status.String == "" {
+			t.Error("status came back without a repository status")
+		}
+	})
+
+	t.Run("unknown component", func(t *testing.T) {
+		if _, err := model.GetComponentStatusByPurlID("00000000-0000-0000-0000-000000000000"); err == nil {
+			t.Error("want an error for a component that is not there")
+		}
+	})
+
+	t.Run("empty component is rejected", func(t *testing.T) {
+		if _, err := model.GetComponentStatusByPurlID(""); err == nil {
+			t.Error("want an error for an empty component")
+		}
+	})
+}
+
+func TestGetVersionStatusByPurlID(t *testing.T) {
+	db, model := setupStatusModel(t)
+	defer CloseDB(db)
+	defer zlog.SyncZap()
+	version := firstVersionOf(t, db, tablestyleID)
+
+	t.Run("known release", func(t *testing.T) {
+		status, err := model.GetVersionStatusByPurlID(tablestyleID, version)
+		if err != nil {
+			t.Fatalf("GetVersionStatusByPurlID error = %v", err)
+		}
+		if status.Version != version {
+			t.Errorf("version = %q, want %q", status.Version, version)
+		}
+		if status.PurlName != tablestylePurl {
+			t.Errorf("purl = %q, want %q", status.PurlName, tablestylePurl)
+		}
+	})
+
+	t.Run("unknown release", func(t *testing.T) {
+		if _, err := model.GetVersionStatusByPurlID(tablestyleID, "99.99.99"); err == nil {
+			t.Error("want an error for a version that is not there")
+		}
+	})
+
+	t.Run("empty component is rejected", func(t *testing.T) {
+		if _, err := model.GetVersionStatusByPurlID("", version); err == nil {
+			t.Error("want an error for an empty component")
+		}
+	})
+}
+
+// A missing table is a query failure, not an empty result.
+func TestComponentStatusReportsQueryFailure(t *testing.T) {
+	db, model := setupStatusModel(t)
+	defer zlog.SyncZap()
+	if _, err := db.Exec("DROP TABLE component_status;"); err != nil {
+		t.Fatalf("failed to drop the table: %v", err)
+	}
+	if _, err := db.Exec("DROP TABLE component;"); err != nil {
+		t.Fatalf("failed to drop the table: %v", err)
+	}
+	defer CloseDB(db)
+
+	if _, err := model.GetComponentStatusByPurlID(tablestyleID); err == nil {
+		t.Error("want an error once the tables are gone")
 	}
 }

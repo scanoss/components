@@ -23,6 +23,7 @@ import (
 	"github.com/golobby/config/v3/pkg/feeder"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	"go.uber.org/zap"
+	scanossdb "scanoss.com/components/pkg/db"
 )
 
 const (
@@ -67,7 +68,11 @@ type ServerConfig struct {
 		OltpExporter string `env:"OTEL_EXPORTER_OLTP"` // OTEL OLTP exporter (default 0.0.0.0:4317)
 	}
 	Database struct {
-		Driver  string `env:"DB_DRIVER"`
+		// Driver selects the serving backend: duckdb (production), sqlite or postgres.
+		Driver string `env:"DB_DRIVER"`
+		// Path is the serving database file, required by the file-based drivers
+		// (duckdb, sqlite) and ignored by postgres.
+		Path    string `env:"DB_PATH"`
 		Host    string `env:"DB_HOST"`
 		User    string `env:"DB_USER"`
 		Passwd  string `env:"DB_PASSWD"`
@@ -119,7 +124,7 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.App.Mode = "dev"
 	cfg.App.GRPCReflection = false
 	cfg.App.Debug = false
-	cfg.Database.Driver = "postgres"
+	cfg.Database.Driver = scanossdb.DriverDuckDB
 	cfg.Database.Host = "localhost"
 	cfg.Database.User = "scanoss"
 	cfg.Database.Schema = "scanoss"

@@ -58,6 +58,10 @@ func TestComponentUseCase_SearchComponents(t *testing.T) {
 
 	compUc := NewComponents(ctx, s, db, database.NewDBSelectContext(s, db, nil, myConfig.Database.Trace), myConfig.GetStatusMapper())
 
+	// The fixture carries pkg:github/angular/angular, so a vendor+component search
+	// finds it. This used to assert the opposite: RunQueries abandons the batch on
+	// the first failing pass and the caller discarded that error, so the search
+	// reported "no components found" for a component that was right there.
 	goodTable := []dtos.ComponentSearchInput{
 		{
 			Component: "angular",
@@ -68,8 +72,20 @@ func TestComponentUseCase_SearchComponents(t *testing.T) {
 
 	for i, dtoCompSearchInput := range goodTable {
 		searchOut, err := compUc.SearchComponents(dtoCompSearchInput)
-		if err == nil {
-			t.Fatalf("test case %d: an error '%s' was not expected when getting components with input %+v", i, err, dtoCompSearchInput)
+		if err != nil {
+			t.Fatalf("test case %d: unexpected error for input %+v: %v", i, dtoCompSearchInput, err)
+		}
+		if len(searchOut.Components) == 0 {
+			t.Fatalf("test case %d: no components found for %+v", i, dtoCompSearchInput)
+		}
+		var found bool
+		for _, c := range searchOut.Components {
+			if c.Purl == "pkg:github/angular/angular" {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("test case %d: want pkg:github/angular/angular among %+v", i, searchOut.Components)
 		}
 		fmt.Printf("Search response: %+v\n", searchOut)
 	}
