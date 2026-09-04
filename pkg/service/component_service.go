@@ -34,7 +34,13 @@ import (
 )
 
 type componentServer struct {
-	pb.ComponentsServer
+	// Embedding the generated Unimplemented struct, not the ComponentsServer
+	// interface. The interface value is nil, so any method the service does not
+	// implement dereferences it and panics, taking the whole process down - one
+	// unauthenticated call to GetComponentStatistics (added in papi v0.42.0 and
+	// not implemented here) was enough. The struct answers those with an
+	// Unimplemented error instead, and keeps doing so as papi grows new methods.
+	pb.UnimplementedComponentsServer
 	db             *sqlx.DB
 	config         *myconfig.ServerConfig
 	dbVersionModel *models.DBVersionModel

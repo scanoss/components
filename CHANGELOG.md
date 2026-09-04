@@ -37,8 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verified against the production serving file (55.7 GiB): search, versions, single and batch status, and the reported DB version
 - `make build_arm` now cross-compiles with cgo and needs an `aarch64` toolchain (set `CC`); the amd64 build is unaffected
 
-### Known issue (pre-existing, not from this change)
-- `componentServer` embeds the `pb.ComponentsServer` **interface** rather than `pb.UnimplementedComponentsServer`, and that field is nil. Any call to a method the service does not implement dereferences it and **panics, killing the process**. `POST /v2/components/statistics` (`GetComponentStatistics`, added in papi v0.42.0 and never implemented here) does exactly that, so one unauthenticated request takes the server down. Embedding `pb.UnimplementedComponentsServer` instead would turn it into an `Unimplemented` error
+### Security
+- **An unauthenticated request could kill the server.** `componentServer` embedded the `pb.ComponentsServer` *interface* rather than `pb.UnimplementedComponentsServer`, and that field is nil, so any call to a method the service does not implement dereferenced it and panicked, taking the whole process down. `POST /v2/components/statistics` (`GetComponentStatistics`, added in papi v0.42.0 and never implemented here) did exactly that; reproduced against the production knowledge base, one request was enough. Embedding the generated `UnimplementedComponentsServer` answers those calls with an `Unimplemented` error and keeps doing so as papi grows new methods. This is pre-existing and unrelated to the serving migration
+- `GetComponentStatistics` remains deliberately unimplemented; this change only stops it from crashing the service
+- The same nil-interface embed is present in `vulnerabilities` and `cryptography`. Neither is reachable today - both implement every method of their papi interface - but each will start crashing the first time papi adds one
 
 ## [0.11.0] - 2026-06-22
 ### Added
