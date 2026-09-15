@@ -33,8 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deployment
 - **Breaking:** requires a serving knowledge base. Point `DB_PATH` at the `.duckdb` file and set `DB_DRIVER=duckdb`
-- Coverage was checked against mining before the migration: `component` holds 29,950,449 rows against `projects`' 30,385,203 (98.6%); `component_status` and `component_version_status` cover every component and release; `component_metrics` covers 19.4M components, where mining had `git_stars` on only 3.97M. On a 40-component sample, 37 had identical version counts and 3 had one or two fewer
-- Verified against the production serving file (55.7 GiB): search, versions, single and batch status, and the reported DB version
+- Coverage was checked against mining before the migration: `component` held 29,950,449 rows against `projects`' 30,385,203 (98.6%), and holds 31,761,182 in the updated export; `component_status` and `component_version_status` cover every component and release; `component_metrics` covers 19.4M components, where mining had `git_stars` on only 3.97M. On a 40-component sample, 37 had identical version counts and 3 had one or two fewer
+- Verified against the production serving file (72.6 GiB): search, versions, single and batch status, and the reported DB version
+- **Re-checked against the updated export.** Every table this service reads - `component`, `component_metrics`, `component_status`, `component_version`, `component_version_status`, `component_version_license`, `license`, `SPDX_license_data`, `db_version` - is column-for-column what it was, and the queries return data unchanged. `component_status` now covers all 31,761,182 components, and `db_version` reads `full / schema 1 / 26.09.15.00.50`
 - `make build_arm` now cross-compiles with cgo and needs an `aarch64` toolchain (set `CC`); the amd64 build is unaffected
 
 ### Security
