@@ -78,13 +78,16 @@ WHERE cvs.purl_id = ? AND cvs.version = ?`
 
 // componentStatusQuery reads the component-level status. Mining read it off
 // `projects`; serving has `component_status`, one row per purl_id.
+//
+// No LIMIT, on purpose: with one, DuckDB answers this unindexed lookup with a
+// streaming single-threaded scan, 1.4 s against 60 ms for the parallel scan it
+// uses without. There is one row per purl_id; the caller takes the first.
 const componentStatusQuery = `SELECT CAST(cs.first_indexed_date AS VARCHAR) AS first_indexed_date,
 	CAST(cs.last_indexed_date AS VARCHAR)    AS last_indexed_date,
 	cs.repository_status                     AS status,
 	CAST(cs.status_change_date AS VARCHAR)   AS status_change_date
 FROM component_status cs
-WHERE cs.purl_id = ?
-LIMIT 1`
+WHERE cs.purl_id = ?`
 
 // componentByPurlQuery reads the component row by its stored purl.
 //
