@@ -93,7 +93,15 @@ type ServerConfig struct {
 		TrustProxy     bool   `env:"COMP_TRUST_PROXY"`      // Trust the interim proxy or not (causes the source IP to be validated instead of the proxy)
 	}
 	StatusMapping struct {
-		Mapping string `env:"STATUS_MAPPING"` // JSON string mapping DB statuses to classified statuses (from env or file)
+		// Mapping is the JSON mapping of DB statuses to classified statuses as the
+		// STATUS_MAPPING environment variable supplies it: always a string.
+		Mapping string `env:"STATUS_MAPPING" json:"-"`
+		// FileMapping is the same mapping as the config file writes it, normally as a
+		// JSON object. It is a separate field because a string field rejects an
+		// object, so the shipped app-config-dev.json failed to load at all ("cannot
+		// unmarshal object into Go struct field .StatusMapping.Mapping of type
+		// string"), and the env feeder cannot set a custom type. The env var wins.
+		FileMapping json.RawMessage `json:"Mapping"`
 	}
 	// StatusMapper is the compiled status mapper (initialised once at startup)
 	statusMapper *StatusMapper
@@ -138,7 +146,22 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 
 // InitStatusMapperConfig initialise the status mapper for mapping component statuses.
 func (cfg *ServerConfig) InitStatusMapperConfig(s *zap.SugaredLogger) {
-	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.StatusMapping.Mapping))
+	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.statusMappingText()))
+}
+
+// statusMappingText returns the configured mapping as JSON text, preferring the
+// environment over the config file. A file mapping written as a JSON string (the
+// env var's format) is unwrapped to its contents.
+func (cfg *ServerConfig) statusMappingText() string {
+	if len(cfg.StatusMapping.Mapping) > 0 {
+		return cfg.StatusMapping.Mapping
+	}
+	raw := cfg.StatusMapping.FileMapping
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil {
+		return text
+	}
+	return string(raw)
 }
 
 // GetStatusMapper returns the status mapper for mapping database statuses to classified statuses.
