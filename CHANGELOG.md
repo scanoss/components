@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An exact version now matches whether or not it carries a leading `v`, answering with the spelling the component publishes. The mining lookup did this through `SemverTogglePrefix`
 - The queries use bound `?` placeholders through `Rebind`, so the same SQL runs on all three backends. The mining search wrote `$N` directly
 - Binaries are built with `CGO_ENABLED=1`, and the runtime image moved to `debian:bookworm-slim` with `libstdc++6`. The DuckDB driver is a cgo binding, so a pure-Go build can no longer be produced
+- **The status and versions queries read `component` by its stored purl, on its own.** They joined it by `purl_id`, which the export does not index, so each query scanned 32 million rows (about 2.5 s of CPU); a batch of ten status requests took up to 24 s under load
+- A source link that points back at the component itself (11.4 of 13.9 million) is no longer followed. It cost an unindexed full scan of `component`, about 2.5 s of CPU, for a fallback that could only repeat the lookup
 
 ### Added
 - **DuckDB support**, the intended production backend for the serving knowledge base. Set `DB_DRIVER=duckdb` and `DB_PATH` to the serving file, which is opened read-only
@@ -26,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **A failing search pass no longer reads as "no components found".** `RunQueries` abandons the whole batch on the first error and the callers discarded that error, so a broken query was indistinguishable from a search that genuinely matched nothing. Two tests had encoded the resulting behaviour: searching npm for `react`, and searching for vendor `angular` + component `angular`, both reported nothing while the fixture carried matches
+- **Scoped npm packages, and other purls the export stores encoded or with qualifiers, resolve again.** `component.purl` keeps scoped npm and jsr names percent-encoded (`pkg:npm/%40angular/core`), qualifiers on generic, conda and cran keys, and a raw `+` in some rpm and deb names. The resolver decoded the purl and rebuilt the key, so 1.96 million components (6%) - plus 1.6 million qualified ones - answered `COMPONENT_NOT_FOUND` however they were spelled. It now tries the caller's spelling, the canonical rendering and the decoded form in one indexed lookup
+- **`app-config-dev.json` loads again.** It writes `StatusMapping.Mapping` as a JSON object, and the field was a string, so the service failed at startup with "cannot unmarshal object". Pre-existing on main
 
 ### Removed
 - `pkg/models/all_urls.go`, replaced by `component_versions.go`. Nothing resolves through package URLs any more
