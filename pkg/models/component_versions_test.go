@@ -51,7 +51,7 @@ func TestGetVersionsByPurlID(t *testing.T) {
 	defer zlog.SyncZap()
 
 	t.Run("known component", func(t *testing.T) {
-		versions, err := model.GetVersionsByPurlID(tablestyleID, 0)
+		versions, err := model.GetVersionsByPurlID(tablestyleID, tablestylePurl, 0)
 		if err != nil {
 			t.Fatalf("GetVersionsByPurlID error = %v", err)
 		}
@@ -73,7 +73,7 @@ func TestGetVersionsByPurlID(t *testing.T) {
 	})
 
 	t.Run("the limit bounds the rows", func(t *testing.T) {
-		versions, err := model.GetVersionsByPurlID(tablestyleID, 3)
+		versions, err := model.GetVersionsByPurlID(tablestyleID, tablestylePurl, 3)
 		if err != nil {
 			t.Fatalf("GetVersionsByPurlID error = %v", err)
 		}
@@ -83,7 +83,7 @@ func TestGetVersionsByPurlID(t *testing.T) {
 	})
 
 	t.Run("unknown component returns nothing", func(t *testing.T) {
-		versions, err := model.GetVersionsByPurlID("00000000-0000-0000-0000-000000000000", 0)
+		versions, err := model.GetVersionsByPurlID("00000000-0000-0000-0000-000000000000", "pkg:gem/does-not-exist", 0)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -93,7 +93,7 @@ func TestGetVersionsByPurlID(t *testing.T) {
 	})
 
 	t.Run("an empty component is rejected", func(t *testing.T) {
-		if _, err := model.GetVersionsByPurlID("", 0); err == nil {
+		if _, err := model.GetVersionsByPurlID("", tablestylePurl, 0); err == nil {
 			t.Error("want an error for an empty component")
 		}
 	})
@@ -108,7 +108,7 @@ func TestGetVersionsByPurlIDReportsQueryFailure(t *testing.T) {
 	}
 	defer CloseDB(db)
 
-	if _, err := model.GetVersionsByPurlID(tablestyleID, 0); err == nil {
+	if _, err := model.GetVersionsByPurlID(tablestyleID, tablestylePurl, 0); err == nil {
 		t.Error("want an error once the table is gone")
 	}
 }

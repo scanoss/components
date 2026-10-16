@@ -39,6 +39,10 @@ type Resolution struct {
 	// PurlID is the serving `component.purl_id`, empty when the component did
 	// not resolve.
 	PurlID string
+	// StoredPurl is `component.purl` exactly as the export spells it. Queries that
+	// need the component row address it by this, through the table's only index,
+	// rather than by purl_id, which DuckDB answers with a full scan.
+	StoredPurl string
 	// SourcePurlID is the purl_id of the linked source component, empty when
 	// there is no source link.
 	SourcePurlID string
@@ -103,6 +107,7 @@ func resolveOne(ctx context.Context, s *zap.SugaredLogger, r *Resolver, res *Res
 	}
 
 	res.PurlID = resolved.PurlID
+	res.StoredPurl = resolved.Purl
 	res.Versions = resolved.Versions
 	res.SourcePurl = sourcePurl(s, resolved.SourcePurl)
 	if resolved.SourcePurl != nil {

@@ -114,7 +114,7 @@ func (c ComponentUseCase) GetComponentVersions(request dtos.ComponentVersionsInp
 		c.s.Errorf("Problem encountered resolving component for: %v - %v.", request.Purl, err)
 		return dtos.ComponentVersionsOutput{}, se.NewNotFoundError(fmt.Sprintf("purl: '%v' not found", request.Purl))
 	}
-	allUrls, err := c.versions.GetVersionsByPurlID(resolved.PurlID, request.Limit)
+	allUrls, err := c.versions.GetVersionsByPurlID(resolved.PurlID, resolved.Purl, request.Limit)
 	if err != nil {
 		c.s.Errorf("Problem encountered getting versions for: %v - %v.", request.Purl, err)
 		return dtos.ComponentVersionsOutput{}, err
@@ -196,7 +196,7 @@ func (c ComponentUseCase) handleComponentStatusResult(request dtos.ComponentStat
 
 // handleSuccessStatus handles the case where both component and version are found.
 func (c ComponentUseCase) handleSuccessStatus(request dtos.ComponentStatusInput, result resolver.Resolution) (dtos.ComponentStatusOutput, error) {
-	statComponent, errComp := c.componentStatus.GetComponentStatusByPurlID(result.PurlID)
+	statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(result.StoredPurl)
 	if errComp != nil {
 		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("error retrieving Component level data", errors.New("error retrieving Component Level Data"))
 	}
@@ -216,7 +216,7 @@ func (c ComponentUseCase) handleSuccessStatus(request dtos.ComponentStatusInput,
 
 // handleVersionNotFound handles the case where component exists but the version is not found.
 func (c ComponentUseCase) handleVersionNotFound(request dtos.ComponentStatusInput, result resolver.Resolution) (dtos.ComponentStatusOutput, error) {
-	statComponent, errComp := c.componentStatus.GetComponentStatusByPurlID(result.PurlID)
+	statComponent, errComp := c.componentStatus.GetComponentStatusByPurl(result.StoredPurl)
 	if errComp != nil {
 		return dtos.ComponentStatusOutput{}, se.NewBadRequestError("error retrieving information", errors.New("error retrieving information"))
 	}
@@ -265,9 +265,9 @@ func (c ComponentUseCase) getVersionStatus(purl string, result resolver.Resoluti
 	var statusVersion *models.ComponentVersionStatus
 	var errVersion error
 	if len(result.Version) > 0 {
-		statusVersion, errVersion = c.componentStatus.GetVersionStatusByPurlID(result.PurlID, result.Version)
+		statusVersion, errVersion = c.componentStatus.GetVersionStatusByPurlID(result.PurlID, result.StoredPurl, result.Version)
 	} else if len(result.Requirement) > 0 {
-		statusVersion, errVersion = c.componentStatus.GetVersionStatusByPurlID(result.PurlID, result.Requirement)
+		statusVersion, errVersion = c.componentStatus.GetVersionStatusByPurlID(result.PurlID, result.StoredPurl, result.Requirement)
 	}
 	if errVersion != nil {
 		c.s.Warnf("Problems getting version level status data for: %v - %v", purl, errVersion)

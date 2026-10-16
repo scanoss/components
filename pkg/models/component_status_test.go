@@ -51,15 +51,15 @@ func firstVersionOf(t *testing.T, db *sqlx.DB, purlID string) string {
 	return version
 }
 
-func TestGetComponentStatusByPurlID(t *testing.T) {
+func TestGetComponentStatusByPurl(t *testing.T) {
 	db, model := setupStatusModel(t)
 	defer CloseDB(db)
 	defer zlog.SyncZap()
 
 	t.Run("known component", func(t *testing.T) {
-		status, err := model.GetComponentStatusByPurlID(tablestyleID)
+		status, err := model.GetComponentStatusByPurl(tablestylePurl)
 		if err != nil {
-			t.Fatalf("GetComponentStatusByPurlID error = %v", err)
+			t.Fatalf("GetComponentStatusByPurl error = %v", err)
 		}
 		if status.PurlName != tablestylePurl {
 			t.Errorf("purl = %q, want %q", status.PurlName, tablestylePurl)
@@ -73,13 +73,13 @@ func TestGetComponentStatusByPurlID(t *testing.T) {
 	})
 
 	t.Run("unknown component", func(t *testing.T) {
-		if _, err := model.GetComponentStatusByPurlID("00000000-0000-0000-0000-000000000000"); err == nil {
+		if _, err := model.GetComponentStatusByPurl("pkg:gem/does-not-exist"); err == nil {
 			t.Error("want an error for a component that is not there")
 		}
 	})
 
 	t.Run("empty component is rejected", func(t *testing.T) {
-		if _, err := model.GetComponentStatusByPurlID(""); err == nil {
+		if _, err := model.GetComponentStatusByPurl(""); err == nil {
 			t.Error("want an error for an empty component")
 		}
 	})
@@ -92,7 +92,7 @@ func TestGetVersionStatusByPurlID(t *testing.T) {
 	version := firstVersionOf(t, db, tablestyleID)
 
 	t.Run("known release", func(t *testing.T) {
-		status, err := model.GetVersionStatusByPurlID(tablestyleID, version)
+		status, err := model.GetVersionStatusByPurlID(tablestyleID, tablestylePurl, version)
 		if err != nil {
 			t.Fatalf("GetVersionStatusByPurlID error = %v", err)
 		}
@@ -105,13 +105,13 @@ func TestGetVersionStatusByPurlID(t *testing.T) {
 	})
 
 	t.Run("unknown release", func(t *testing.T) {
-		if _, err := model.GetVersionStatusByPurlID(tablestyleID, "99.99.99"); err == nil {
+		if _, err := model.GetVersionStatusByPurlID(tablestyleID, tablestylePurl, "99.99.99"); err == nil {
 			t.Error("want an error for a version that is not there")
 		}
 	})
 
 	t.Run("empty component is rejected", func(t *testing.T) {
-		if _, err := model.GetVersionStatusByPurlID("", version); err == nil {
+		if _, err := model.GetVersionStatusByPurlID("", tablestylePurl, version); err == nil {
 			t.Error("want an error for an empty component")
 		}
 	})
@@ -129,7 +129,7 @@ func TestComponentStatusReportsQueryFailure(t *testing.T) {
 	}
 	defer CloseDB(db)
 
-	if _, err := model.GetComponentStatusByPurlID(tablestyleID); err == nil {
+	if _, err := model.GetComponentStatusByPurl(tablestylePurl); err == nil {
 		t.Error("want an error once the tables are gone")
 	}
 }

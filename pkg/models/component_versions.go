@@ -43,11 +43,11 @@ type ComponentVersionsModel struct {
 // DTOs are built from it; there are no URLs involved any more.
 type AllURL struct {
 	Version   string         `db:"version"`
-	Component string         `db:"component"`
+	Component string         `db:"-"`
 	License   string         `db:"license"`
 	LicenseID string         `db:"license_id"`
 	IsSpdx    bool           `db:"is_spdx"`
-	PurlName  string         `db:"purl_name"`
+	PurlName  string         `db:"-"`
 	Date      sql.NullString `db:"date"`
 	URL       string         `db:"-"`
 }
@@ -69,14 +69,11 @@ func NewComponentVersionsModel(ctx context.Context, s *zap.SugaredLogger, q *dat
 // The empty version is excluded: it is the package-level aggregate row, not a
 // release.
 const versionsByPurlIDQuery = `SELECT cv.version                AS version,
-	c.component                              AS component,
-	c.purl                                   AS purl_name,
 	cvs.indexed_date                         AS date,
 	COALESCE(l.long_name, '')                AS license,
 	COALESCE(l."SPDX", '')                   AS license_id,
 	CASE WHEN sld."SPDX_id" IS NOT NULL THEN 1 ELSE 0 END AS is_spdx
 FROM component_version cv
-INNER JOIN component c ON c.purl_id = cv.purl_id
 LEFT JOIN component_version_status cvs ON cvs.purl_id = cv.purl_id AND cvs.version = cv.version
 LEFT JOIN component_version_license cvl ON cvl.purl_id = cv.purl_id AND cvl.version = cv.version
 LEFT JOIN license l ON l.id = cvl.license_id
@@ -85,20 +82,34 @@ WHERE cv.purl_id = ? AND cv.version <> ''
 ORDER BY date DESC NULLS LAST
 LIMIT ?`
 
-// GetVersionsByPurlID lists the releases of an already-resolved component.
-func (m *ComponentVersionsModel) GetVersionsByPurlID(purlID string, limit int) ([]AllURL, error) {
-	if len(purlID) == 0 {
+// GetVersionsByPurlID lists the releases of an already-resolved component, given
+// its purl_id and its purl as stored. The component's name is read separately, by
+// purl (see componentByPurlQuery).
+func (m *ComponentVersionsModel) GetVersionsByPurlID(purlID, purl string, limit int) ([]AllURL, error) {
+	if len(purlID) == 0 || len(purl) == 0 {
 		m.s.Error("Please specify a valid component to query")
 		return nil, errors.New("please specify a valid component to query")
 	}
 	if limit <= 0 {
 		limit = defaultMaxVersionLimit
 	}
+	comp, err := componentByPurl(m.ctx, m.q, m.db, purl)
+	if err != nil {
+		m.s.Errorf("Failed to query component %v: %v", purl, err)
+		return nil, fmt.Errorf("failed to query the component versions: %w", err)
+	}
+	if comp == nil {
+		return []AllURL{}, nil
+	}
 	var versions []AllURL
-	err := m.q.SelectContext(m.ctx, &versions, m.db.Rebind(versionsByPurlIDQuery), purlID, limit)
+	err = m.q.SelectContext(m.ctx, &versions, m.db.Rebind(versionsByPurlIDQuery), purlID, limit)
 	if err != nil {
 		m.s.Errorf("Failed to query component versions for %v: %v", purlID, err)
 		return nil, fmt.Errorf("failed to query the component versions: %w", err)
+	}
+	for i := range versions {
+		versions[i].Component = comp.Component.String
+		versions[i].PurlName = comp.PurlName
 	}
 	m.s.Debugf("Found %v versions for %v.", len(versions), purlID)
 	return versions, nil
