@@ -107,14 +107,17 @@ type componentRow struct {
 	PurlID    string         `db:"purl_id"`
 }
 
-// componentByPurl reads a component by its stored purl; nil when there is none.
+// errNoComponent is componentByPurl's answer for a purl with no component row.
+var errNoComponent = errors.New("component not found")
+
+// componentByPurl reads a component by its stored purl; errNoComponent when there is none.
 func componentByPurl(ctx context.Context, q *database.DBQueryContext, db *sqlx.DB, purl string) (*componentRow, error) {
 	var rows []componentRow
 	if err := q.SelectContext(ctx, &rows, db.Rebind(componentByPurlQuery), purl); err != nil {
 		return nil, err
 	}
 	if len(rows) == 0 {
-		return nil, nil
+		return nil, errNoComponent
 	}
 	return &rows[0], nil
 }
@@ -149,13 +152,13 @@ func (m *ComponentStatusModel) GetComponentStatusByPurl(purl string) (*Component
 		return nil, errors.New("please specify a valid component to query")
 	}
 	comp, err := componentByPurl(m.ctx, m.q, m.db, purl)
+	if errors.Is(err, errNoComponent) {
+		m.s.Warnf("No status found for %v", purl)
+		return nil, err
+	}
 	if err != nil {
 		m.s.Errorf("Failed to query component %v: %v", purl, err)
 		return nil, fmt.Errorf("failed to query component status: %w", err)
-	}
-	if comp == nil {
-		m.s.Warnf("No status found for %v", purl)
-		return nil, errors.New("component not found")
 	}
 	// A component with no status row still reports its name, as the LEFT JOIN this
 	// replaces did.

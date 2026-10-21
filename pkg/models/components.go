@@ -143,7 +143,7 @@ func (m *ComponentModel) runSearch(queryJobs []QueryJob, limit int) ([]Component
 
 // splitPurl breaks "pkg:<type>/<name>" back into its two parts. The mining
 // search read them from separate columns; serving stores the assembled purl.
-func splitPurl(purl string) (purlType, purlName string) {
+func splitPurl(purl string) (string, string) {
 	trimmed := strings.TrimPrefix(purl, "pkg:")
 	if idx := strings.Index(trimmed, "/"); idx >= 0 {
 		return trimmed[:idx], trimmed[idx+1:]

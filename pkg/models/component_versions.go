@@ -94,12 +94,12 @@ func (m *ComponentVersionsModel) GetVersionsByPurlID(purlID, purl string, limit 
 		limit = defaultMaxVersionLimit
 	}
 	comp, err := componentByPurl(m.ctx, m.q, m.db, purl)
+	if errors.Is(err, errNoComponent) {
+		return []AllURL{}, nil
+	}
 	if err != nil {
 		m.s.Errorf("Failed to query component %v: %v", purl, err)
 		return nil, fmt.Errorf("failed to query the component versions: %w", err)
-	}
-	if comp == nil {
-		return []AllURL{}, nil
 	}
 	var versions []AllURL
 	err = m.q.SelectContext(m.ctx, &versions, m.db.Rebind(versionsByPurlIDQuery), purlID, limit)

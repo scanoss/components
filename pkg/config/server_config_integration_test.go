@@ -148,8 +148,8 @@ func TestServerConfig_StatusMapping_FromJSONObject(t *testing.T) {
 		t.Fatalf("Failed to load the dev config: %v", err)
 	}
 	mapper := cfg.GetStatusMapper()
-	if got := mapper.MapStatus("unlisted"); got != "removed" {
-		t.Errorf("MapStatus(unlisted) = %q, want %q", got, "removed")
+	if got := mapper.MapStatus("unlisted"); got != removedStatus {
+		t.Errorf("MapStatus(unlisted) = %q, want %q", got, removedStatus)
 	}
 	if got := mapper.MapStatus("archived"); got != "deprecated" {
 		t.Errorf("MapStatus(archived) = %q, want %q", got, "deprecated")
