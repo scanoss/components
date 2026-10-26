@@ -24,12 +24,7 @@ jobs:
       - name: Setup Version
         run: make version
 
-      - name: Read linter version from Makefile
-        id: linter
-        run: echo "version=$(grep '^LINT_VERSION' Makefile | cut -d':' -f2 | tr -d '= ')" >> "$GITHUB_OUTPUT"
-
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: ${{ steps.linter.outputs.version }}
-          args: --timeout=5m
+          version: v2.10.1
