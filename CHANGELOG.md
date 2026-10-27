@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-27
+
 ### Changed
 - **The service now reads the serving knowledge base instead of the mining database.** The mining path is gone; there is no configuration that selects it. Endpoint routes and response shapes are unchanged
 - **Search reads `component` instead of `projects ⋈ mines`.** The purl type was a `mines.purl_type` filter and is now the purl's own first segment, applied as `purl LIKE 'pkg:<type>/%'`. The popularity ordering is unchanged but reads `component_metrics`, which carries `git_stars`/`git_forks`/`git_created_at`/`first_version_date`/`versions`, one optional row per component
@@ -101,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated project dependencies to latest versions
 
 
+[0.12.0]: https://github.com/scanoss/components/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/scanoss/components/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/scanoss/components/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/scanoss/components/compare/v0.8.0...v0.9.0
