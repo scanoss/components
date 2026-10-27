@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-10-27
+
+### Fixed
+- **The release workflow fails to build.** Since 0.12.1 it runs in a `golang:1.25-bookworm` container as root, over a checkout the runner owns, and git refuses such a repository, so the build could not read the version from the tag and the build stopped. The workflow now marks the workspace as a safe directory. 0.12.1 was tagged but never released
+
 ## [0.12.1] - 2026-10-27
 
 ### Fixed
@@ -108,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated project dependencies to latest versions
 
 
+[0.12.2]: https://github.com/scanoss/components/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/scanoss/components/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/scanoss/components/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/scanoss/components/compare/v0.10.0...v0.11.0
