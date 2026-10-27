@@ -2,12 +2,13 @@
   "App": {
     "Name": "Component Service",
     "Debug": true,
-    "Mode":  "dev"
+    "Mode": "dev"
   },
   "Database": {
-    "Driver": "postgres",
-    "Host":   "localhost",
-    "User":   "scanoss",
+    "Driver": "duckdb",
+    "Path": "/var/lib/scanoss/serving.duckdb",
+    "Host": "localhost",
+    "User": "scanoss",
     "Passwd": "secret123!",
     "Schema": "scanoss"
   }

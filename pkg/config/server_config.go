@@ -23,6 +23,7 @@ import (
 	"github.com/golobby/config/v3/pkg/feeder"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 	"go.uber.org/zap"
+	scanossdb "scanoss.com/components/pkg/db"
 )
 
 const (
@@ -67,7 +68,11 @@ type ServerConfig struct {
 		OltpExporter string `env:"OTEL_EXPORTER_OLTP"` // OTEL OLTP exporter (default 0.0.0.0:4317)
 	}
 	Database struct {
-		Driver  string `env:"DB_DRIVER"`
+		// Driver selects the serving backend: duckdb (production), sqlite or postgres.
+		Driver string `env:"DB_DRIVER"`
+		// Path is the serving database file, required by the file-based drivers
+		// (duckdb, sqlite) and ignored by postgres.
+		Path    string `env:"DB_PATH"`
 		Host    string `env:"DB_HOST"`
 		User    string `env:"DB_USER"`
 		Passwd  string `env:"DB_PASSWD"`
@@ -88,7 +93,15 @@ type ServerConfig struct {
 		TrustProxy     bool   `env:"COMP_TRUST_PROXY"`      // Trust the interim proxy or not (causes the source IP to be validated instead of the proxy)
 	}
 	StatusMapping struct {
-		Mapping string `env:"STATUS_MAPPING"` // JSON string mapping DB statuses to classified statuses (from env or file)
+		// Mapping is the JSON mapping of DB statuses to classified statuses as the
+		// STATUS_MAPPING environment variable supplies it: always a string.
+		Mapping string `env:"STATUS_MAPPING" json:"-"`
+		// FileMapping is the same mapping as the config file writes it, normally as a
+		// JSON object. It is a separate field because a string field rejects an
+		// object, so the shipped app-config-dev.json failed to load at all ("cannot
+		// unmarshal object into Go struct field .StatusMapping.Mapping of type
+		// string"), and the env feeder cannot set a custom type. The env var wins.
+		FileMapping json.RawMessage `json:"Mapping"`
 	}
 	// StatusMapper is the compiled status mapper (initialised once at startup)
 	statusMapper *StatusMapper
@@ -119,7 +132,7 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 	cfg.App.Mode = "dev"
 	cfg.App.GRPCReflection = false
 	cfg.App.Debug = false
-	cfg.Database.Driver = "postgres"
+	cfg.Database.Driver = scanossdb.DriverDuckDB
 	cfg.Database.Host = "localhost"
 	cfg.Database.User = "scanoss"
 	cfg.Database.Schema = "scanoss"
@@ -133,7 +146,22 @@ func setServerConfigDefaults(cfg *ServerConfig) {
 
 // InitStatusMapperConfig initialise the status mapper for mapping component statuses.
 func (cfg *ServerConfig) InitStatusMapperConfig(s *zap.SugaredLogger) {
-	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.StatusMapping.Mapping))
+	cfg.statusMapper = NewStatusMapper(s, parseStatusMappingString(cfg.statusMappingText()))
+}
+
+// statusMappingText returns the configured mapping as JSON text, preferring the
+// environment over the config file. A file mapping written as a JSON string (the
+// env var's format) is unwrapped to its contents.
+func (cfg *ServerConfig) statusMappingText() string {
+	if len(cfg.StatusMapping.Mapping) > 0 {
+		return cfg.StatusMapping.Mapping
+	}
+	raw := cfg.StatusMapping.FileMapping
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil {
+		return text
+	}
+	return string(raw)
 }
 
 // GetStatusMapper returns the status mapper for mapping database statuses to classified statuses.

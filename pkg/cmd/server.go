@@ -28,14 +28,12 @@ import (
 	"github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 	"github.com/scanoss/go-grpc-helper/pkg/files"
-	gd "github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	gs "github.com/scanoss/go-grpc-helper/pkg/grpc/server"
-	gomodels "github.com/scanoss/go-models/pkg/models"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
-	_ "modernc.org/sqlite"
 	myconfig "scanoss.com/components/pkg/config"
+	scanossdb "scanoss.com/components/pkg/db"
+	"scanoss.com/components/pkg/models"
 	"scanoss.com/components/pkg/protocol/grpc"
 	"scanoss.com/components/pkg/protocol/rest"
 	"scanoss.com/components/pkg/service"
@@ -113,16 +111,21 @@ func RunServer() error {
 		cfg.App.Version = strings.TrimSpace(version)
 	}
 	zlog.S.Infof("Starting SCANOSS Component Service: %v", cfg.App.Version)
-	// Set up the database connection pool
-	db, err := gd.OpenDBConnection(cfg.Database.Dsn, cfg.Database.Driver, cfg.Database.User, cfg.Database.Passwd,
-		cfg.Database.Host, cfg.Database.Schema, cfg.Database.SslMode)
+	// Open the serving knowledge base. The file-based drivers take a path; postgres
+	// takes an explicit DSN, or one assembled from the host settings.
+	db, err := scanossdb.Open(scanossdb.Config{
+		Driver: cfg.Database.Driver,
+		Path:   cfg.Database.Path,
+		DSN:    postgresDSN(cfg),
+	})
 	if err != nil {
 		return err
 	}
-	if err = gd.SetDBOptionsAndPing(db); err != nil {
-		return err
-	}
-	defer gd.CloseDBConnection(db)
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			zlog.S.Warnf("Problem closing the database: %v", closeErr)
+		}
+	}()
 	// Log database version info
 	logDBVersion(db)
 	// Set up dynamic logging (if necessary)
@@ -149,7 +152,7 @@ func RunServer() error {
 // logDBVersion logs the current version of the database.
 func logDBVersion(db *sqlx.DB) {
 	// Log database version info
-	dbVersionModel := gomodels.NewDBVersionModel(db)
+	dbVersionModel := models.NewDBVersionModel(db)
 	dbVersion, dbVersionErr := dbVersionModel.GetCurrentVersion(context.Background())
 	switch {
 	case dbVersionErr != nil:
@@ -160,4 +163,20 @@ func logDBVersion(db *sqlx.DB) {
 	default:
 		zlog.S.Warn("db_version table is empty")
 	}
+}
+
+// postgresDSN returns the connection string for the postgres driver, assembling one
+// from the individual host settings when no explicit DSN is configured. It keeps the
+// format go-grpc-helper's OpenDBConnection used to build, so existing postgres
+// deployments read the same configuration as before. Empty for the file-based
+// drivers, which use Path instead.
+func postgresDSN(cfg *myconfig.ServerConfig) string {
+	if cfg.Database.Driver != scanossdb.DriverPostgres {
+		return ""
+	}
+	if len(cfg.Database.Dsn) > 0 {
+		return cfg.Database.Dsn
+	}
+	return fmt.Sprintf("%s://%s:%s@%s/%s?sslmode=%s", scanossdb.DriverPostgres, cfg.Database.User,
+		cfg.Database.Passwd, cfg.Database.Host, cfg.Database.Schema, cfg.Database.SslMode)
 }

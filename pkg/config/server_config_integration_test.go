@@ -21,6 +21,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/golobby/config/v3"
+	"github.com/golobby/config/v3/pkg/feeder"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
 )
 
@@ -129,5 +131,27 @@ func TestServerConfig_StatusMapping_WithProvidedLogger(t *testing.T) {
 	result := mapper.MapStatus("test-status")
 	if result != "test-mapped" {
 		t.Errorf("Expected 'test-mapped', got %q", result)
+	}
+}
+
+// TestServerConfig_StatusMapping_FromJSONObject loads the shipped dev config, which
+// writes the mapping as a JSON object. It used to fail to load at all, because the
+// field was a plain string.
+func TestServerConfig_StatusMapping_FromJSONObject(t *testing.T) {
+	err := zlog.NewSugaredDevLogger()
+	if err != nil {
+		t.Fatalf("Failed to initialise logger: %v", err)
+	}
+	defer zlog.SyncZap()
+	cfg, err := NewServerConfig([]config.Feeder{feeder.Json{Path: "../../config/app-config-dev.json"}})
+	if err != nil {
+		t.Fatalf("Failed to load the dev config: %v", err)
+	}
+	mapper := cfg.GetStatusMapper()
+	if got := mapper.MapStatus("unlisted"); got != removedStatus {
+		t.Errorf("MapStatus(unlisted) = %q, want %q", got, removedStatus)
+	}
+	if got := mapper.MapStatus("archived"); got != "deprecated" {
+		t.Errorf("MapStatus(archived) = %q, want %q", got, "deprecated")
 	}
 }

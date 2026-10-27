@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2018-2026 SCANOSS.COM
+ * Copyright (C) 2018-2025 SCANOSS.COM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,8 +22,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
-	purlhelper "github.com/scanoss/go-purl-helper/pkg"
 	"go.uber.org/zap"
 )
 
@@ -31,6 +31,7 @@ type ComponentStatusModel struct {
 	ctx context.Context
 	s   *zap.SugaredLogger
 	q   *database.DBQueryContext
+	db  *sqlx.DB
 }
 
 // ComponentVersionStatus represents the status information for a specific version.
@@ -58,135 +59,121 @@ type ComponentFullStatus struct {
 	ComponentProjectStatus
 }
 
-func NewComponentStatusModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext) *ComponentStatusModel {
-	return &ComponentStatusModel{ctx: ctx, s: s, q: q}
+func NewComponentStatusModel(ctx context.Context, s *zap.SugaredLogger, q *database.DBQueryContext, db *sqlx.DB) *ComponentStatusModel {
+	return &ComponentStatusModel{ctx: ctx, s: s, q: q, db: db}
 }
 
-// GetComponentStatusByPurlAndVersion gets status information for a specific component version.
-func (m *ComponentStatusModel) GetComponentStatusByPurlAndVersion(purlString, version string) (*ComponentVersionStatus, error) {
-	if len(purlString) == 0 {
-		m.s.Errorf("Please specify a valid Purl String to query")
-		return nil, errors.New("please specify a valid Purl String to query")
-	}
-	purl, err := purlhelper.PurlFromString(purlString)
-	if err != nil {
+// versionStatusQuery reads the status of one release.
+//
+// Mining kept this on `all_urls` (`version_status`, `indexed_date`,
+// `version_status_change_date`) and needed a join to `mines` for the purl type.
+// Serving has a dedicated `component_version_status` keyed by (purl_id, version),
+// with the status column named `repository_status`.
+const versionStatusQuery = `SELECT cvs.version AS version,
+	CAST(cvs.indexed_date AS VARCHAR)        AS indexed_date,
+	cvs.repository_status                    AS version_status,
+	CAST(cvs.status_change_date AS VARCHAR)  AS version_status_change_date
+FROM component_version_status cvs
+WHERE cvs.purl_id = ? AND cvs.version = ?`
+
+// componentStatusQuery reads the component-level status. Mining read it off
+// `projects`; serving has `component_status`, one row per purl_id.
+//
+// No LIMIT, on purpose: with one, DuckDB answers this unindexed lookup with a
+// streaming single-threaded scan, 1.4 s against 60 ms for the parallel scan it
+// uses without. There is one row per purl_id; the caller takes the first.
+const componentStatusQuery = `SELECT CAST(cs.first_indexed_date AS VARCHAR) AS first_indexed_date,
+	CAST(cs.last_indexed_date AS VARCHAR)    AS last_indexed_date,
+	cs.repository_status                     AS status,
+	CAST(cs.status_change_date AS VARCHAR)   AS status_change_date
+FROM component_status cs
+WHERE cs.purl_id = ?`
+
+// componentByPurlQuery reads the component row by its stored purl.
+//
+// The component row is read on its own, never joined, in every query of this
+// package. `component(purl)` is the export's only index, and DuckDB does not use
+// it once a join carries a purl_id filter across: it falls back to scanning all
+// 32 million rows, about 2.5 s of CPU per call, which is what made a batch of
+// status requests take seconds. Read alone by purl it takes a few milliseconds.
+const componentByPurlQuery = `SELECT purl AS purl_name, component AS component,
+	CAST(purl_id AS VARCHAR) AS purl_id
+FROM component WHERE purl = ?`
+
+// componentRow is the slice of a `component` row the models report.
+type componentRow struct {
+	PurlName  string         `db:"purl_name"`
+	Component sql.NullString `db:"component"`
+	PurlID    string         `db:"purl_id"`
+}
+
+// errNoComponent is componentByPurl's answer for a purl with no component row.
+var errNoComponent = errors.New("component not found")
+
+// componentByPurl reads a component by its stored purl; errNoComponent when there is none.
+func componentByPurl(ctx context.Context, q *database.DBQueryContext, db *sqlx.DB, purl string) (*componentRow, error) {
+	var rows []componentRow
+	if err := q.SelectContext(ctx, &rows, db.Rebind(componentByPurlQuery), purl); err != nil {
 		return nil, err
 	}
-	purlName, err := purlhelper.PurlNameFromString(purlString)
-	if err != nil {
-		return nil, err
+	if len(rows) == 0 {
+		return nil, errNoComponent
 	}
-	var status ComponentVersionStatus
-	// Query to get both version and component status
-	query := `
-	SELECT DISTINCT  au.purl_name, au."version",  au.indexed_date,  au.version_status,  au.version_status_change_date 
-	FROM 
-	 	all_urls au,
-	 	mines m
-	WHERE
-		au.mine_id = m.id AND au.purl_name = $1 AND m.purl_type = $2 AND au."version" = $3 
-	`
+	return &rows[0], nil
+}
+
+// GetVersionStatusByPurlID gets the status of one release of a resolved component,
+// given its purl_id and its purl as stored.
+func (m *ComponentStatusModel) GetVersionStatusByPurlID(purlID, purl, version string) (*ComponentVersionStatus, error) {
+	if len(purlID) == 0 || len(purl) == 0 {
+		m.s.Error("Please specify a valid component to query")
+		return nil, errors.New("please specify a valid component to query")
+	}
 	var results []ComponentVersionStatus
-	err = m.q.SelectContext(m.ctx, &results, query, purlName, purl.Type, version)
+	err := m.q.SelectContext(m.ctx, &results, m.db.Rebind(versionStatusQuery), purlID, version)
 	if err != nil {
-		m.s.Errorf("Failed to query component status for %v version %v: %v", purlName, version, err)
-		return nil, fmt.Errorf("failed to query component status: %v", err)
+		m.s.Errorf("Failed to query component status for %v version %v: %v", purlID, version, err)
+		return nil, fmt.Errorf("failed to query component status: %w", err)
 	}
 	if len(results) == 0 {
-		m.s.Warnf("No status found for %v version %v", purlName, version)
-		return nil, fmt.Errorf("component version not found")
+		m.s.Warnf("No status found for %v version %v", purlID, version)
+		return nil, errors.New("component version not found")
 	}
-	status = results[0]
-	m.s.Debugf("Found status for %v version %v", purlName, version)
-	return &status, nil
+	m.s.Debugf("Found status for %v version %v", purlID, version)
+	results[0].PurlName = purl
+	return &results[0], nil
 }
 
-// GetComponentStatusByPurl gets status information for the latest version of a component.
-func (m *ComponentStatusModel) GetComponentStatusByPurl(purlString string) (*ComponentProjectStatus, error) {
-	if len(purlString) == 0 {
-		m.s.Errorf("Please specify a valid Purl String to query")
-		return nil, errors.New("please specify a valid Purl String to query")
+// GetComponentStatusByPurl gets the component-level status of a resolved component,
+// given its purl as stored.
+func (m *ComponentStatusModel) GetComponentStatusByPurl(purl string) (*ComponentProjectStatus, error) {
+	if len(purl) == 0 {
+		m.s.Error("Please specify a valid component to query")
+		return nil, errors.New("please specify a valid component to query")
 	}
-	purl, err := purlhelper.PurlFromString(purlString)
-	if err != nil {
+	comp, err := componentByPurl(m.ctx, m.q, m.db, purl)
+	if errors.Is(err, errNoComponent) {
+		m.s.Warnf("No status found for %v", purl)
 		return nil, err
 	}
-	purlName, err := purlhelper.PurlNameFromString(purlString)
 	if err != nil {
-		return nil, err
+		m.s.Errorf("Failed to query component %v: %v", purl, err)
+		return nil, fmt.Errorf("failed to query component status: %w", err)
 	}
-	var status ComponentProjectStatus
-	// Query to get both version and component status for the latest version
-	query := `
-	SELECT DISTINCT
-		p.component,
-  		p.first_indexed_date,
- 		p.last_indexed_date ,
- 		p.status,
- 		p.status_change_date
-	FROM
- 		projects p,
- 		mines m
-	WHERE
- 		p.mine_id = m.id
- 		AND p.purl_name = $1
- 		AND m.purl_type = $2;
-	`
+	// A component with no status row still reports its name, as the LEFT JOIN this
+	// replaces did.
+	status := ComponentProjectStatus{PurlName: comp.PurlName, Component: comp.Component.String}
 	var results []ComponentProjectStatus
-	err = m.q.SelectContext(m.ctx, &results, query, purlName, purl.Type)
-	if err != nil {
-		m.s.Errorf("Failed to query component status for %v: %v", purlName, err)
-		return nil, fmt.Errorf("failed to query component status: %v", err)
+	if err = m.q.SelectContext(m.ctx, &results, m.db.Rebind(componentStatusQuery), comp.PurlID); err != nil {
+		m.s.Errorf("Failed to query component status for %v: %v", purl, err)
+		return nil, fmt.Errorf("failed to query component status: %w", err)
 	}
-	if len(results) == 0 {
-		m.s.Warnf("No status found for %v", purlName)
-		return nil, fmt.Errorf("component not found")
+	if len(results) > 0 {
+		status.FirstIndexedDate = results[0].FirstIndexedDate
+		status.LastIndexedDate = results[0].LastIndexedDate
+		status.Status = results[0].Status
+		status.StatusChangeDate = results[0].StatusChangeDate
 	}
-	status = results[0]
-	m.s.Debugf("Found status for %v", purlName)
-	return &status, nil
-}
-
-// GetProjectStatusByPurl gets only the project-level status (no version information).
-func (m *ComponentStatusModel) GetProjectStatusByPurl(purlString string) (*ComponentProjectStatus, error) {
-	if len(purlString) == 0 {
-		m.s.Errorf("Please specify a valid Purl String to query")
-		return nil, errors.New("please specify a valid Purl String to query")
-	}
-	purl, err := purlhelper.PurlFromString(purlString)
-	if err != nil {
-		return nil, err
-	}
-	purlName, err := purlhelper.PurlNameFromString(purlString)
-	if err != nil {
-		return nil, err
-	}
-	var status ComponentProjectStatus
-	query := `
-		SELECT DISTINCT
-			p.purl_name,
-			p.component,
-			p.first_indexed_date,
-			p.last_indexed_date,
-			p.status,
-			p.status_change_date
-		FROM projects p
-		JOIN mines m ON p.mine_id = m.id
-		WHERE p.purl_name = $1
-			AND m.purl_type = $2
-		LIMIT 1
-	`
-	var results []ComponentProjectStatus
-	err = m.q.SelectContext(m.ctx, &results, query, purlName, purl.Type)
-	if err != nil {
-		m.s.Errorf("Failed to query project status for %v: %v", purlName, err)
-		return nil, fmt.Errorf("failed to query project status: %v", err)
-	}
-	if len(results) == 0 {
-		m.s.Warnf("No project status found for %v", purlName)
-		return nil, fmt.Errorf("component not found")
-	}
-	status = results[0]
-	m.s.Debugf("Found project status for %v", purlName)
+	m.s.Debugf("Found status for %v", purl)
 	return &status, nil
 }

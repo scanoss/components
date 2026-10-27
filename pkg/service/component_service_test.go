@@ -138,13 +138,17 @@ func TestComponentServer_SearchComponents(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			// The fixture carries several npm components matching "react", so this
+			// succeeds. It used to expect FAILED: RunQueries abandons the batch on the
+			// first failing pass and the caller discarded that error, so the search
+			// reported "no components found" for components that were right there.
 			name: "Search for react and purl type npm without limit",
 			s:    s,
 			args: args{
 				ctx: ctx,
 				req: &compReq,
 			},
-			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_FAILED, Message: "No components found matching the search criteria", Server: &common.StatusResponse_Server{Version: appVersion}}},
+			want: &pb.CompSearchResponse{Status: &common.StatusResponse{Status: common.StatusCode_SUCCESS, Message: "Success", Server: &common.StatusResponse_Server{Version: appVersion}}},
 		},
 		{
 			name: "Search for a empty request",

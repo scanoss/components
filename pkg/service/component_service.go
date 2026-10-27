@@ -25,19 +25,25 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
-	gomodels "github.com/scanoss/go-models/pkg/models"
 	common "github.com/scanoss/papi/api/commonv2"
 	pb "github.com/scanoss/papi/api/componentsv2"
 	myconfig "scanoss.com/components/pkg/config"
 	se "scanoss.com/components/pkg/errors"
+	"scanoss.com/components/pkg/models"
 	"scanoss.com/components/pkg/usecase"
 )
 
 type componentServer struct {
-	pb.ComponentsServer
+	// Embedding the generated Unimplemented struct, not the ComponentsServer
+	// interface. The interface value is nil, so any method the service does not
+	// implement dereferences it and panics, taking the whole process down - one
+	// unauthenticated call to GetComponentStatistics (added in papi v0.42.0 and
+	// not implemented here) was enough. The struct answers those with an
+	// Unimplemented error instead, and keeps doing so as papi grows new methods.
+	pb.UnimplementedComponentsServer
 	db             *sqlx.DB
 	config         *myconfig.ServerConfig
-	dbVersionModel *gomodels.DBVersionModel
+	dbVersionModel *models.DBVersionModel
 }
 
 func NewComponentServer(db *sqlx.DB, config *myconfig.ServerConfig) pb.ComponentsServer {
@@ -45,7 +51,7 @@ func NewComponentServer(db *sqlx.DB, config *myconfig.ServerConfig) pb.Component
 	return &componentServer{
 		db:             db,
 		config:         config,
-		dbVersionModel: gomodels.NewDBVersionModel(db),
+		dbVersionModel: models.NewDBVersionModel(db),
 	}
 }
 
@@ -244,7 +250,7 @@ func (d componentServer) GetComponentsStatus(ctx context.Context, request *commo
 func (d componentServer) getDBVersion() *common.StatusResponse_DB {
 	dbVersion, err := d.dbVersionModel.GetCurrentVersion(context.Background())
 	if err != nil {
-		if !errors.Is(err, gomodels.ErrTableNotFound) {
+		if !errors.Is(err, models.ErrDBVersionTableNotFound) {
 			s := ctxzap.Extract(context.Background()).Sugar()
 			s.Errorf("Failed to get db version: %v", err)
 		}

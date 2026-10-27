@@ -19,9 +19,9 @@ package models
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
 	zlog "github.com/scanoss/zap-logging-helper/pkg/logger"
@@ -52,7 +52,7 @@ func TestComponentsModel(t *testing.T) {
 	}
 	myConfig.Database.Trace = true
 	db.DriverName()
-	component := NewComponentModel(ctx, s, database.NewDBSelectContext(s, db, conn, myConfig.Database.Trace), database.GetLikeOperator(db))
+	component := NewComponentModel(ctx, s, database.NewDBSelectContext(s, db, conn, myConfig.Database.Trace), db, database.GetLikeOperator(db))
 
 	passTestTable := []struct {
 		SearchParam string
@@ -128,69 +128,69 @@ func TestComponentsModel(t *testing.T) {
 	}
 }
 
-func TestPreProcessQueryJobs(t *testing.T) {
-	testTable := []struct {
-		qList    []QueryJob
+// The #ORDER placeholder is gone: the ranking clause is chosen per purl type and
+// written straight into the query, so what is worth pinning is the choice itself.
+func TestOrderByPurlType(t *testing.T) {
+	tests := []struct {
 		purlType string
-		wanted   []QueryJob
+		wantCols string
 	}{
-		{
-			qList: []QueryJob{
-				{
-					Query: "SELECT * project #ORDER LIMIT $1",
-					Args:  []any{0},
-				},
-				{
-					Query: "SELECT * project #ORDER LIMIT $1",
-					Args:  []any{0},
-				},
-			},
-			purlType: "github",
-			wanted: []QueryJob{
-				{
-					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST LIMIT $1",
-					Args:  []any{0},
-				},
-				{
-					Query: "SELECT * project ORDER BY git_created_at NULLS LAST , git_forks DESC NULLS LAST, git_stars DESC NULLS LAST LIMIT $1",
-					Args:  []any{0},
-				},
-			},
-		},
-		{
-			qList: []QueryJob{{
-				Query: "SELECT * FROM project #ORDER",
-			}},
-			purlType: "NONEXISTENT",
-			wanted: []QueryJob{
-				{
-					Query: "SELECT * FROM project",
-				},
-			},
-		},
-		{
-			qList: []QueryJob{
-				{Query: "SELECT * FROM project"},
-			},
-			purlType: "github",
-			wanted: []QueryJob{
-				{Query: "SELECT * FROM project"},
-			},
-		},
+		{"github", "cm.git_created_at"},
+		{"npm", "cm.first_version_date"},
+		{"pypi", "cm.first_version_date"},
+		{"gem", "cm.first_version_date"},
+		// A purl type with no ranking entry gets no ORDER BY at all, as in mining.
+		{"NONEXISTENT", ""},
 	}
-
-	for _, testInput := range testTable {
-		q, err := preProcessQueryJob(testInput.qList, testInput.purlType)
-		if err != nil {
-			t.Errorf("Error produced when pre processing QueryJobs: %v\n", err)
-		}
-		if !cmp.Equal(q, testInput.wanted) {
-			t.Errorf(" unexpected output for preProcessQueryJob()\nWanted: %v\n, Got:%v\n", testInput.wanted, q)
-		}
+	for _, tt := range tests {
+		t.Run(tt.purlType, func(t *testing.T) {
+			got := orderByPurlType[tt.purlType]
+			if tt.wantCols == "" {
+				if got != "" {
+					t.Errorf("order clause = %q, want none", got)
+				}
+				return
+			}
+			if !strings.Contains(got, tt.wantCols) {
+				t.Errorf("order clause = %q, want it to rank on %s", got, tt.wantCols)
+			}
+			// The columns must be qualified for the metrics alias, or the join is pointless.
+			if !strings.HasPrefix(got, "ORDER BY cm.") {
+				t.Errorf("order clause = %q, want it qualified with the component_metrics alias", got)
+			}
+		})
 	}
+}
 
-	_, err := preProcessQueryJob([]QueryJob{}, "")
-	if err == nil {
-		t.Errorf("An error was expected with empty parameters \n")
+// The purl type used to be a `mines.purl_type = ?` filter; serving folds it into
+// a prefix on the purl itself.
+func TestPurlPatterns(t *testing.T) {
+	if got := typePrefix("github"); got != "pkg:github/%" {
+		t.Errorf("typePrefix = %q, want pkg:github/%%", got)
+	}
+	if got := namePattern("npm", "%lodash%"); got != "pkg:npm/%lodash%" {
+		t.Errorf("namePattern = %q, want pkg:npm/%%lodash%%", got)
+	}
+}
+
+func TestSplitPurl(t *testing.T) {
+	tests := []struct {
+		purl     string
+		wantType string
+		wantName string
+	}{
+		{"pkg:github/scanoss/engine", "github", "scanoss/engine"},
+		{"pkg:npm/lodash", "npm", "lodash"},
+		// Scoped npm packages stay percent-encoded; splitting must not touch them.
+		{"pkg:npm/%40scope/name", "npm", "%40scope/name"},
+		{"pkg:gem", "gem", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.purl, func(t *testing.T) {
+			gotType, gotName := splitPurl(tt.purl)
+			if gotType != tt.wantType || gotName != tt.wantName {
+				t.Errorf("splitPurl(%q) = (%q, %q), want (%q, %q)", tt.purl, gotType, gotName, tt.wantType, tt.wantName)
+			}
+		})
 	}
 }
