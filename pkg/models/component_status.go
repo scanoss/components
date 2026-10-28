@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/scanoss/go-grpc-helper/pkg/grpc/database"
@@ -141,6 +142,7 @@ func (m *ComponentStatusModel) GetVersionStatusByPurlID(purlID, purl, version st
 	}
 	m.s.Debugf("Found status for %v version %v", purlID, version)
 	results[0].PurlName = purl
+	results[0].IndexedDate = miningTimestamp(results[0].IndexedDate)
 	return &results[0], nil
 }
 
@@ -176,4 +178,19 @@ func (m *ComponentStatusModel) GetComponentStatusByPurl(purl string) (*Component
 	}
 	m.s.Debugf("Found status for %v", purl)
 	return &status, nil
+}
+
+// miningTimestamp renders a release's indexed date as mining reported it. Mining
+// kept all_urls.indexed_date as a timestamp, so the response carried it as RFC 3339
+// at midnight UTC ("2022-09-21T00:00:00Z"); serving stores a DATE, which the
+// query reads as "2022-09-21". Every other status date, the release's
+// status_change_date included, was always a bare date and is left alone. A value
+// that is not a bare date is returned unchanged.
+func miningTimestamp(date sql.NullString) sql.NullString {
+	day, err := time.Parse(time.DateOnly, date.String)
+	if err != nil {
+		return date
+	}
+	date.String = day.Format(time.RFC3339)
+	return date
 }
