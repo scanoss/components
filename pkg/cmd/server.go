@@ -113,7 +113,7 @@ func RunServer() error {
 	zlog.S.Infof("Starting SCANOSS Component Service: %v", cfg.App.Version)
 	// Open the serving knowledge base. The file-based drivers take a path; postgres
 	// takes an explicit DSN, or one assembled from the host settings.
-	db, err := scanossdb.Open(scanossdb.Config{
+	db, reloader, err := scanossdb.OpenReloadable(scanossdb.Config{
 		Driver: cfg.Database.Driver,
 		Path:   cfg.Database.Path,
 		DSN:    postgresDSN(cfg),
@@ -126,6 +126,10 @@ func RunServer() error {
 			zlog.S.Warnf("Problem closing the database: %v", closeErr)
 		}
 	}()
+	// The serving export is rotated by repointing its symlink; a SIGHUP
+	// (systemctl reload) moves the handle to the new file without a restart.
+	stopReload := scanossdb.ReloadOnSIGHUP(reloader, zlog.S)
+	defer stopReload()
 	// Log database version info
 	logDBVersion(db)
 	// Set up dynamic logging (if necessary)
