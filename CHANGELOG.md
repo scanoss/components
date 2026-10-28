@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3] - 2026-10-28
+
+### Fixed
+- **Two dates changed format with the move to serving.** Serving stores them as `DATE`, which the DuckDB driver hands over as a timestamp, and the responses drifted from what the mining-backed service returned. Both are back to the 0.11.0 format:
+  - `versions[].date` in `/v2/components/versions` read `"2026-10-13T00:00:00Z"`; it is the bare date `"2026-10-13"` again
+  - `version_status.indexed_date` in `/v2/components/status` read the bare date `"2022-09-21"`; it is `"2022-09-21T00:00:00Z"` again, as mining kept it as a timestamp. The release's `status_change_date` and the component-level dates were always bare dates and are unchanged
+
 ## [0.12.2] - 2026-10-27
 
 ### Fixed
@@ -113,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated project dependencies to latest versions
 
 
+[0.12.3]: https://github.com/scanoss/components/compare/v0.12.2...v0.12.3
 [0.12.2]: https://github.com/scanoss/components/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/scanoss/components/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/scanoss/components/compare/v0.11.0...v0.12.0

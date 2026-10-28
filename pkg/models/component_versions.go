@@ -68,8 +68,12 @@ func NewComponentVersionsModel(ctx context.Context, s *zap.SugaredLogger, q *dat
 //
 // The empty version is excluded: it is the package-level aggregate row, not a
 // release.
+//
+// The date is cast to text so it reads as the bare date mining returned
+// ("2026-10-13"): scanned as a DATE, the DuckDB driver hands over a time.Time
+// that sql.NullString renders as "2026-10-13T00:00:00Z".
 const versionsByPurlIDQuery = `SELECT cv.version                AS version,
-	cvs.indexed_date                         AS date,
+	CAST(cvs.indexed_date AS VARCHAR)        AS date,
 	COALESCE(l.long_name, '')                AS license,
 	COALESCE(l."SPDX", '')                   AS license_id,
 	CASE WHEN sld."SPDX_id" IS NOT NULL THEN 1 ELSE 0 END AS is_spdx
@@ -79,7 +83,7 @@ LEFT JOIN component_version_license cvl ON cvl.purl_id = cv.purl_id AND cvl.vers
 LEFT JOIN license l ON l.id = cvl.license_id
 LEFT JOIN "SPDX_license_data" sld ON sld."SPDX_id" = l."SPDX"
 WHERE cv.purl_id = ? AND cv.version <> ''
-ORDER BY date DESC NULLS LAST
+ORDER BY cvs.indexed_date DESC NULLS LAST
 LIMIT ?`
 
 // GetVersionsByPurlID lists the releases of an already-resolved component, given
